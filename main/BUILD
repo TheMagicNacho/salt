@@ -4,7 +4,10 @@ load("@rules_cc//cc:defs.bzl", "cc_binary")
 
 cppwinrt_projection(
     name = "winrt_headers",
-    winmd_inputs = ["@windows_app_sdk//:winmd"],
+    winmd_inputs = [
+        "@windows_app_sdk//:winmd",
+        "@webview2//:winmd",
+    ],
 )
 
 cc_binary(
@@ -12,8 +15,12 @@ cc_binary(
     srcs = ["main.cc"],
     deps = [
         ":winrt_headers",
-        "@windows_app_sdk//:libs",  # <-- Move this back to deps
+        "@windows_app_sdk//:libs",
         "//lib:salt_lib",
     ],
-    linkopts = ["/SUBSYSTEM:WINDOWS"],
+    linkopts = [
+        "/SUBSYSTEM:WINDOWS",
+        "WindowsApp.lib",
+        "runtimeobject.lib",
+    ],
 )

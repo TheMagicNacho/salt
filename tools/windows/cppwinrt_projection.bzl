@@ -5,10 +5,13 @@ load("@rules_cc//cc/common:cc_common.bzl", "cc_common")
 def _cppwinrt_projection_impl(ctx):
     out_dir = ctx.actions.declare_directory(ctx.label.name)
     args = ctx.actions.args()
-    args.add("-in", "local")
+    args.add("-input")
+    args.add("C:/Windows/System32/WinMetadata")
     for f in ctx.files.winmd_inputs:
-        args.add("-in", f.dirname)
-    args.add("-out", out_dir.path)
+        args.add("-input")
+        args.add(f.dirname)
+    args.add("-output")
+    args.add(out_dir.path)
     ctx.actions.run(
         outputs = [out_dir],
         inputs = ctx.files.winmd_inputs,
@@ -17,7 +20,6 @@ def _cppwinrt_projection_impl(ctx):
         mnemonic = "CppWinrtProjection",
         execution_requirements = {"no-sandbox": "1"},
     )
-    cc_toolchain = find_cc_toolchain(ctx)
     compilation_context = cc_common.create_compilation_context(
         includes = depset([out_dir.path]),
         headers = depset([out_dir]),

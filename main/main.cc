@@ -2,10 +2,8 @@
 #include <windows.h>
 #include <winrt/Microsoft.UI.Xaml.h>
 #include <winrt/Microsoft.UI.Xaml.Controls.h>
+#include <winrt/Windows.Foundation.Collections.h>
 #include <winrt/Windows.Foundation.h>
-
-// #include "options-handler.h"   // your existing lib headers still work here
-// #include "file-handler.h"
 
 using namespace winrt;
 using namespace Microsoft::UI::Xaml;
@@ -15,18 +13,9 @@ struct App : ApplicationT<App> {
     void OnLaunched(LaunchActivatedEventArgs const&) {
         auto button = Button();
         button.Content(box_value(L"Run"));
-        button.Click([](auto&&, auto&&) {
-            // hook into your existing lib here, e.g.:
-            // auto result = options_handler::Parse(...);
-            OutputDebugStringW(L"Button clicked\n");
-        });
-
-        auto panel = StackPanel();
-        panel.Orientation(Controls::Orientation::Vertical);
-        panel.Children().Append(button);
 
         m_window = Window();
-        m_window.Content(panel);
+        m_window.Content(button);
         m_window.Title(L"WinUI3 Prototype");
         m_window.Activate();
     }
@@ -37,7 +26,9 @@ struct App : ApplicationT<App> {
 
 int APIENTRY wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
     winrt::init_apartment(winrt::apartment_type::single_threaded);
-    Application::Start([](auto&&) { make<App>(); });
+    Application::Start([](winrt::Microsoft::UI::Xaml::ApplicationInitializationCallbackParams const&) {
+        make<App>();
+    });
 }
 
 // #ifndef UNICODE
