@@ -1,15 +1,19 @@
-load("@rules_cc//cc:cc_binary.bzl", "cc_binary")
+# main\BUILD
+load("//tools/windows:cppwinrt_projection.bzl", "cppwinrt_projection")
+load("@rules_cc//cc:defs.bzl", "cc_binary")
+
+cppwinrt_projection(
+    name = "winrt_headers",
+    winmd_inputs = ["@windows_app_sdk//:winmd"],
+)
 
 cc_binary(
-    name="salt",
-    srcs=["main.cc"],
-    deps=[
+    name = "salt",
+    srcs = ["main.cc"],
+    deps = [
+        ":winrt_headers",
+        "@windows_app_sdk//:libs",  # <-- Move this back to deps
         "//lib:salt_lib",
     ],
-    linkopts=[
-        "/SUBSYSTEM:WINDOWS",  # Tells the linker to look for wWinMain instead of main
-        "user32.lib",  # For CreateWindowEx, GetMessage, etc.
-        "gdi32.lib",  # For drawing text and printing later
-        "comdlg32.lib",  # For Open/Save dialogs later
-    ],
+    linkopts = ["/SUBSYSTEM:WINDOWS"],
 )
