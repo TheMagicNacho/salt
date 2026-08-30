@@ -4,43 +4,51 @@
 
 #include <windows.h>
 #include <commdlg.h>
-#include <lib/hello-greet.h>
 #include <lib/defaults.h>
 #include <lib/file-handler.h>
 
 #define ID_FILE_OPEN 1
 #define ID_FILE_SAVE 2
-#define ID_FILE_PRINT 3
-#define ID_FILE_EXIT 4
+#define ID_FILE_SAVE_AS 3
+#define ID_FILE_PRINT 4
+#define ID_FILE_EXIT 5
 
 struct AppState {
     HWND hEdit = NULL;
     FileHandler fileHandler{NULL};
 };
 
-LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
-    AppState* state = reinterpret_cast<AppState*>(GetWindowLongPtr(hwnd, GWLP_USERDATA));
+LRESULT CALLBACK WindowProc(HWND window_handle, UINT uMsg, WPARAM wParam, LPARAM lParam) {
+    AppState* state = reinterpret_cast<AppState*>(GetWindowLongPtr(window_handle, GWLP_USERDATA));
 
     switch (uMsg) {
         case WM_CREATE: {
             state = new AppState();
-            SetWindowLongPtr(hwnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(state));
+            SetWindowLongPtr(window_handle, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(state));
             // Create Menu
-            HMENU hMenu = CreateMenu();
-            HMENU hFileMenu = CreatePopupMenu();
-            AppendMenu(hFileMenu, MF_STRING, ID_FILE_OPEN, L"&Open");
-            AppendMenu(hFileMenu, MF_STRING, ID_FILE_SAVE, L"&Save As");
-            AppendMenu(hFileMenu, MF_STRING, ID_FILE_PRINT, L"&Print");
-            AppendMenu(hFileMenu, MF_SEPARATOR, 0, NULL);
-            AppendMenu(hFileMenu, MF_STRING, ID_FILE_EXIT, L"E&xit");
-            AppendMenu(hMenu, MF_POPUP, (UINT_PTR)hFileMenu, L"&File");
-            SetMenu(hwnd, hMenu);
+            HMENU menu_container = CreateMenu();
+            HMENU file_menu = CreatePopupMenu();
+            HMENU view_menu = CreatePopupMenu();
+            // FILE MENU
+            AppendMenu(file_menu, MF_STRING, ID_FILE_OPEN, L"&Open");
+            AppendMenu(file_menu, MF_STRING, ID_FILE_SAVE, L"&Save");
+            AppendMenu(file_menu, MF_STRING, ID_FILE_SAVE_AS, L"&Save As");
+            AppendMenu(file_menu, MF_STRING, ID_FILE_PRINT, L"&Print");
+            AppendMenu(file_menu, MF_SEPARATOR, 0, NULL);
+            AppendMenu(file_menu, MF_STRING, ID_FILE_EXIT, L"E&xit");
+            // OPTIONS MENU
+            AppendMenu(view_menu, MF_STRING, 10, L"&Toggle Word Wrap");
+            AppendMenu(view_menu, MF_STRING, 11, L"&Select Font");
+
+            AppendMenu(menu_container, MF_POPUP, (UINT_PTR)file_menu, L"&File");
+            AppendMenu(menu_container, MF_POPUP, (UINT_PTR)view_menu, L"&View");
+            SetMenu(window_handle, menu_container);
 
             // Create EDIT Child Control
             state->hEdit = CreateWindowEx(0, L"EDIT", NULL,
                                           WS_CHILD | WS_VISIBLE | WS_VSCROLL | WS_HSCROLL |
                                               ES_MULTILINE | ES_AUTOVSCROLL | ES_AUTOHSCROLL,
-                                          0, 0, 0, 0, hwnd, (HMENU)101,
+                                          0, 0, 0, 0, window_handle, (HMENU)101,
                                           ((LPCREATESTRUCT)lParam)->hInstance, NULL);
             state->fileHandler.SetEditHandle(state->hEdit);
             return 0;
@@ -57,16 +65,19 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
             if (!state && state->hEdit) break;
             switch (LOWORD(wParam)) {
                 case ID_FILE_OPEN:
-                    state->fileHandler.Open(hwnd);
+                    state->fileHandler.Open(window_handle);
                     break;
                 case ID_FILE_SAVE:
-                    state->fileHandler.Save(hwnd);
+                    state->fileHandler.Save(window_handle);
+                    break;
+                case ID_FILE_SAVE_AS:
+                    state->fileHandler.SaveAs(window_handle);
                     break;
                 case ID_FILE_PRINT:
-                    state->fileHandler.Print(hwnd);
+                    state->fileHandler.Print(window_handle);
                     break;
                 case ID_FILE_EXIT:
-                    DestroyWindow(hwnd);
+                    DestroyWindow(window_handle);
                     break;
             }
             return 0;
@@ -75,12 +86,12 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
         case WM_DESTROY:
             if (state) {
                 delete state;
-                SetWindowLongPtr(hwnd, GWLP_USERDATA, 0);
+                SetWindowLongPtr(window_handle, GWLP_USERDATA, 0);
             }
             PostQuitMessage(0);
             return 0;
     }
-    return DefWindowProc(hwnd, uMsg, wParam, lParam);
+    return DefWindowProc(window_handle, uMsg, wParam, lParam);
 }
 
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine, int nCmdShow) {
@@ -94,12 +105,13 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 
     RegisterClass(&wc);
 
-    HWND hwnd = CreateWindowEx(0, CLASS_NAME, L"Salt Text Editor", WS_OVERLAPPEDWINDOW,
-                               CW_USEDEFAULT, CW_USEDEFAULT, 800, 600, NULL, NULL, hInstance, NULL);
+    HWND window_handle =
+        CreateWindowEx(0, CLASS_NAME, L"Salt Text Editor", WS_OVERLAPPEDWINDOW, CW_USEDEFAULT,
+                       CW_USEDEFAULT, 800, 600, NULL, NULL, hInstance, NULL);
 
-    if (hwnd == NULL) return 0;
+    if (window_handle == NULL) return 0;
 
-    ShowWindow(hwnd, nCmdShow);
+    ShowWindow(window_handle, nCmdShow);
 
     MSG msg = {};
     while (GetMessage(&msg, NULL, 0, 0) > 0) {

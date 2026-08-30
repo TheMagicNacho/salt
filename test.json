@@ -1,0 +1,12 @@
+{
+  "id": 1,
+  "user": "username",
+  "email": "user@example.com",
+  "isActive": true,
+  "roles": ["admin", "editor"],
+  "settings": {
+    "theme": "dark",
+    "notifications": true,
+    "score": 95.5
+  }
+}

@@ -10,10 +10,10 @@ This is the text editor if your salty that microsoft made notepad so bloated.
 - windows sdk: https://learn.microsoft.com/en-gb/windows/apps/windows-sdk/
 - bazel : https://bazel.build/install/windows
   - bazelisk: https://github.com/bazelbuild/bazelisk
-- bazel-compile-commands: https://github.com/kiron1/bazel-compile-commands/releases/latest
 
-## set up 
-- from root, run `bazel-compile-commands` to generate `compile_commands.json`. This will help your IDE understand the build.
+## set up
+
+- get teh compile_commands.json by running `bazelisk run @hedron_compile_commands//:refresh_all`
 
 ### Commands
 
