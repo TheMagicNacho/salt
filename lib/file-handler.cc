@@ -1,4 +1,5 @@
 #include "file-handler.h"
+#include <shobjidl.h>
 
 namespace {
 std::wstring NormalizeLineEndings(const std::wstring& text) {
@@ -145,132 +146,249 @@ std::wstring DecodeTextFile(const char* raw_buffer, DWORD dw_size) {
 
     return L"";
 }
+
+std::wstring GetOpenFilePathModern(HWND hwnd) {
+    std::wstring result;
+    IFileOpenDialog* pFileOpen = nullptr;
+    HRESULT hr = CoCreateInstance(CLSID_FileOpenDialog, NULL, CLSCTX_ALL,
+                                  IID_IFileOpenDialog, reinterpret_cast<void**>(&pFileOpen));
+    if (SUCCEEDED(hr)) {
+        COMDLG_FILTERSPEC rgSpec[] = {
+            { L"All Supported Files (*.txt, *.md, *.json, *.cpp, *.h)", L"*.txt;*.md;*.json;*.cpp;*.h;*.c;*.hpp;*.bzl;*.py;*.js;*.ts;*.html;*.css" },
+            { L"Text Files (*.txt)", L"*.txt" },
+            { L"Markdown Files (*.md)", L"*.md" },
+            { L"All Files (*.*)", L"*.*" }
+        };
+        pFileOpen->SetFileTypes(ARRAYSIZE(rgSpec), rgSpec);
+
+        hr = pFileOpen->Show(hwnd);
+        if (SUCCEEDED(hr)) {
+            IShellItem* pItem = nullptr;
+            hr = pFileOpen->GetResult(&pItem);
+            if (SUCCEEDED(hr)) {
+                PWSTR pszFilePath = nullptr;
+                hr = pItem->GetDisplayName(SIGDN_FILESYSPATH, &pszFilePath);
+                if (SUCCEEDED(hr)) {
+                    result = pszFilePath;
+                    CoTaskMemFree(pszFilePath);
+                }
+                pItem->Release();
+            }
+        }
+        pFileOpen->Release();
+    } else {
+        // Fallback to legacy GetOpenFileName
+        OPENFILENAME ofn = {sizeof(OPENFILENAME)};
+        wchar_t szFile[MAX_PATH] = {0};
+        ofn.hwndOwner = hwnd;
+        ofn.lpstrFile = szFile;
+        ofn.nMaxFile = MAX_PATH;
+        ofn.lpstrFilter = L"All Files (*.*)\0*.*\0Text Files (*.txt)\0*.txt\0";
+        ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST;
+        if (GetOpenFileName(&ofn)) {
+            result = szFile;
+        }
+    }
+    return result;
+}
+
+std::wstring GetSaveFilePathModern(HWND hwnd) {
+    std::wstring result;
+    IFileSaveDialog* pFileSave = nullptr;
+    HRESULT hr = CoCreateInstance(CLSID_FileSaveDialog, NULL, CLSCTX_ALL,
+                                  IID_IFileSaveDialog, reinterpret_cast<void**>(&pFileSave));
+    if (SUCCEEDED(hr)) {
+        COMDLG_FILTERSPEC rgSpec[] = {
+            { L"Text Files (*.txt)", L"*.txt" },
+            { L"Markdown Files (*.md)", L"*.md" },
+            { L"All Files (*.*)", L"*.*" }
+        };
+        pFileSave->SetFileTypes(ARRAYSIZE(rgSpec), rgSpec);
+        pFileSave->SetDefaultExtension(L"txt");
+
+        hr = pFileSave->Show(hwnd);
+        if (SUCCEEDED(hr)) {
+            IShellItem* pItem = nullptr;
+            hr = pFileSave->GetResult(&pItem);
+            if (SUCCEEDED(hr)) {
+                PWSTR pszFilePath = nullptr;
+                hr = pItem->GetDisplayName(SIGDN_FILESYSPATH, &pszFilePath);
+                if (SUCCEEDED(hr)) {
+                    result = pszFilePath;
+                    CoTaskMemFree(pszFilePath);
+                }
+                pItem->Release();
+            }
+        }
+        pFileSave->Release();
+    } else {
+        // Fallback to legacy GetSaveFileName
+        OPENFILENAME ofn = {sizeof(OPENFILENAME)};
+        wchar_t szFile[MAX_PATH] = {0};
+        ofn.hwndOwner = hwnd;
+        ofn.lpstrFile = szFile;
+        ofn.nMaxFile = MAX_PATH;
+        ofn.lpstrFilter = L"Text Files (*.txt)\0*.txt\0All Files (*.*)\0*.*\0";
+        ofn.Flags = OFN_OVERWRITEPROMPT;
+        if (GetSaveFileName(&ofn)) {
+            result = szFile;
+        }
+    }
+    return result;
+}
 }  // namespace
 
-FileHandler::FileHandler(HWND edit_hwnd) : text_edit_(edit_hwnd) {}
+FileHandler::FileHandler(HWND edit_hwnd) : text_edit_(edit_hwnd), is_dirty_(false) {}
 
 void FileHandler::SetEditHandle(HWND hEdit) { text_edit_ = hEdit; }
 
-void FileHandler::Open(HWND hwnd) {
-    OPENFILENAME ofn = {sizeof(OPENFILENAME)};
-    wchar_t szFile[MAX_PATH] = {0};
+void FileHandler::SetDirty(bool dirty) { is_dirty_ = dirty; }
 
-    ofn.hwndOwner = hwnd;
-    ofn.lpstrFile = szFile;
-    ofn.nMaxFile = MAX_PATH;
-    ofn.lpstrFilter = L"Text Files (*.txt)\0*.txt\0All Files (*.*)\0*.*\0";
-    ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST;
+bool FileHandler::IsDirty() const { return is_dirty_; }
 
-    if (GetOpenFileName(&ofn)) {
-        current_file_path_ = szFile;
+std::wstring FileHandler::GetFilePath() const { return current_file_path_; }
 
-        HANDLE file_handle = CreateFile(szFile, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING,
-                                        FILE_ATTRIBUTE_NORMAL, NULL);
-        if (file_handle != INVALID_HANDLE_VALUE) {
-            DWORD dw_size = GetFileSize(file_handle, NULL);
-            if (dw_size != INVALID_FILE_SIZE) {
-                // Read raw 8-bit bytes from the file
-                char* raw_buffer =
-                    (char*)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, dw_size + 1);
-                DWORD dw_read;
-
-                if (ReadFile(file_handle, raw_buffer, dw_size, &dw_read, NULL)) {
-                    std::wstring wideBuffer = DecodeTextFile(raw_buffer, dw_size);
-                    wideBuffer = NormalizeLineEndings(wideBuffer);
-
-                    // if (!text_edit_) return;
-
-                    SetWindowTextW(text_edit_, wideBuffer.c_str());
-                }
-
-                HeapFree(GetProcessHeap(), 0, raw_buffer);
-            }
-            CloseHandle(file_handle);
-        }
-    }
-}
-void FileHandler::Save(HWND hwnd) {
-    // If we don't have an active file, fall back to "Save As"
+std::wstring FileHandler::GetFileName() const {
     if (current_file_path_.empty()) {
-        SaveAs(hwnd);
-        return;
+        return L"Untitled";
     }
-
-    if (!text_edit_) return;
-
-    // Open the existing file and overwrite it (CREATE_ALWAYS)
-    HANDLE hFile = CreateFile(current_file_path_.c_str(), GENERIC_WRITE, 0, NULL, CREATE_ALWAYS,
-                              FILE_ATTRIBUTE_NORMAL, NULL);
-
-    if (hFile != INVALID_HANDLE_VALUE) {
-        int len = GetWindowTextLength(text_edit_);
-        wchar_t* buffer =
-            (wchar_t*)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, (len + 1) * sizeof(wchar_t));
-        GetWindowText(text_edit_, buffer, len + 1);
-
-        // Convert UTF-16 back to UTF-8 for consistent file output
-        int utf8Len = WideCharToMultiByte(CP_UTF8, 0, buffer, len, NULL, 0, NULL, NULL);
-        char* utf8Buffer = (char*)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, utf8Len);
-        WideCharToMultiByte(CP_UTF8, 0, buffer, len, utf8Buffer, utf8Len, NULL, NULL);
-
-        DWORD dwWritten;
-        WriteFile(hFile, utf8Buffer, utf8Len, &dwWritten, NULL);
-
-        HeapFree(GetProcessHeap(), 0, utf8Buffer);
-        HeapFree(GetProcessHeap(), 0, buffer);
-        CloseHandle(hFile);
+    size_t last_slash = current_file_path_.find_last_of(L"\\/");
+    if (last_slash != std::wstring::npos) {
+        return current_file_path_.substr(last_slash + 1);
     }
+    return current_file_path_;
 }
 
-void FileHandler::SaveAs(HWND hwnd) {
-    OPENFILENAME ofn = {sizeof(OPENFILENAME)};
-    wchar_t szFile[MAX_PATH] = {0};
+bool FileHandler::PromptSaveIfDirty(HWND hwnd) {
+    if (!is_dirty_) return true;
 
-    ofn.hwndOwner = hwnd;
-    ofn.lpstrFile = szFile;
-    ofn.nMaxFile = MAX_PATH;
-    ofn.lpstrFilter = L"Text Files (*.txt)\0*.txt\0All Files (*.*)\0*.*\0";
-    ofn.Flags = OFN_OVERWRITEPROMPT;
+    std::wstring msg = L"Do you want to save changes to " + GetFileName() + L"?";
+    int result = MessageBoxW(hwnd, msg.c_str(), L"Salt Text Editor",
+                             MB_YESNOCANCEL | MB_ICONQUESTION);
+    if (result == IDYES) {
+        return Save(hwnd);
+    } else if (result == IDNO) {
+        return true;
+    }
+    return false; // IDCANCEL
+}
 
-    if (GetSaveFileName(&ofn)) {
-        HANDLE hFile =
-            CreateFile(szFile, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
-        if (hFile != INVALID_HANDLE_VALUE) {
-            if (!text_edit_) return;  // DoPrintFile(hwnd);
-            int len = GetWindowTextLength(text_edit_);
-            wchar_t* buffer = (wchar_t*)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY,
-                                                  (len + 1) * sizeof(wchar_t));
-            GetWindowText(text_edit_, buffer, len + 1);
+bool FileHandler::New(HWND hwnd) {
+    if (!PromptSaveIfDirty(hwnd)) return false;
 
-            DWORD dwWritten;
-            WriteFile(hFile, buffer, len * sizeof(wchar_t), &dwWritten, NULL);
+    current_file_path_.clear();
+    is_dirty_ = false;
+    if (text_edit_) {
+        SetWindowTextW(text_edit_, L"");
+    }
+    return true;
+}
 
-            HeapFree(GetProcessHeap(), 0, buffer);
-            CloseHandle(hFile);
+bool FileHandler::Open(HWND hwnd) {
+    if (!PromptSaveIfDirty(hwnd)) return false;
+
+    std::wstring selected_file = GetOpenFilePathModern(hwnd);
+    if (selected_file.empty()) return false;
+
+    HANDLE file_handle = CreateFileW(selected_file.c_str(), GENERIC_READ, FILE_SHARE_READ, NULL,
+                                     OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+    if (file_handle == INVALID_HANDLE_VALUE) {
+        MessageBoxW(hwnd, L"Failed to open file.", L"Error", MB_ICONERROR);
+        return false;
+    }
+
+    DWORD dw_size = GetFileSize(file_handle, NULL);
+    if (dw_size == INVALID_FILE_SIZE) {
+        CloseHandle(file_handle);
+        return false;
+    }
+
+    char* raw_buffer = (char*)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, dw_size + 1);
+    DWORD dw_read = 0;
+    bool success = false;
+
+    if (ReadFile(file_handle, raw_buffer, dw_size, &dw_read, NULL)) {
+        std::wstring wideBuffer = DecodeTextFile(raw_buffer, dw_size);
+        wideBuffer = NormalizeLineEndings(wideBuffer);
+
+        if (text_edit_) {
+            SetWindowTextW(text_edit_, wideBuffer.c_str());
+            current_file_path_ = selected_file;
+            is_dirty_ = false;
+            success = true;
         }
     }
+
+    HeapFree(GetProcessHeap(), 0, raw_buffer);
+    CloseHandle(file_handle);
+    return success;
+}
+
+bool FileHandler::Save(HWND hwnd) {
+    if (current_file_path_.empty()) {
+        return SaveAs(hwnd);
+    }
+
+    if (!text_edit_) return false;
+
+    HANDLE hFile = CreateFileW(current_file_path_.c_str(), GENERIC_WRITE, 0, NULL,
+                               CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+    if (hFile == INVALID_HANDLE_VALUE) {
+        MessageBoxW(hwnd, L"Failed to save file.", L"Error", MB_ICONERROR);
+        return false;
+    }
+
+    int len = GetWindowTextLengthW(text_edit_);
+    wchar_t* buffer = (wchar_t*)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, (len + 1) * sizeof(wchar_t));
+    GetWindowTextW(text_edit_, buffer, len + 1);
+
+    int utf8Len = WideCharToMultiByte(CP_UTF8, 0, buffer, len, NULL, 0, NULL, NULL);
+    char* utf8Buffer = (char*)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, utf8Len);
+    WideCharToMultiByte(CP_UTF8, 0, buffer, len, utf8Buffer, utf8Len, NULL, NULL);
+
+    DWORD dwWritten = 0;
+    BOOL writeSuccess = WriteFile(hFile, utf8Buffer, utf8Len, &dwWritten, NULL);
+
+    HeapFree(GetProcessHeap(), 0, utf8Buffer);
+    HeapFree(GetProcessHeap(), 0, buffer);
+    CloseHandle(hFile);
+
+    if (writeSuccess) {
+        is_dirty_ = false;
+        return true;
+    }
+    return false;
+}
+
+bool FileHandler::SaveAs(HWND hwnd) {
+    std::wstring selected_file = GetSaveFilePathModern(hwnd);
+    if (selected_file.empty()) return false;
+
+    current_file_path_ = selected_file;
+    return Save(hwnd);
 }
 
 void FileHandler::Print(HWND hwnd) {
-    PRINTDLG pd = {sizeof(PRINTDLG)};
+    PRINTDLGW pd = {sizeof(PRINTDLGW)};
     pd.hwndOwner = hwnd;
     pd.Flags = PD_RETURNDC | PD_NOPAGENUMS | PD_NOSELECTION;
 
-    if (PrintDlg(&pd)) {
-        DOCINFO di = {sizeof(DOCINFO), L"Salt Text Document"};
-        if (StartDoc(pd.hDC, &di) > 0) {
+    if (PrintDlgW(&pd)) {
+        DOCINFOW di = {sizeof(DOCINFOW), L"Salt Text Document"};
+        if (StartDocW(pd.hDC, &di) > 0) {
             StartPage(pd.hDC);
 
-            if (!text_edit_) return;
-            int len = GetWindowTextLength(text_edit_);
-            wchar_t* buffer = (wchar_t*)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY,
-                                                  (len + 1) * sizeof(wchar_t));
-            GetWindowText(text_edit_, buffer, len + 1);
+            if (text_edit_) {
+                int len = GetWindowTextLengthW(text_edit_);
+                wchar_t* buffer = (wchar_t*)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY,
+                                                      (len + 1) * sizeof(wchar_t));
+                GetWindowTextW(text_edit_, buffer, len + 1);
 
-            RECT rect = {100, 100, 2000, 3000};  // Standard page printable area margin
-            DrawText(pd.hDC, buffer, -1, &rect, DT_LEFT | DT_WORDBREAK);
+                RECT rect = {100, 100, 2000, 3000};
+                DrawTextW(pd.hDC, buffer, -1, &rect, DT_LEFT | DT_WORDBREAK);
 
-            HeapFree(GetProcessHeap(), 0, buffer);
+                HeapFree(GetProcessHeap(), 0, buffer);
+            }
 
             EndPage(pd.hDC);
             EndDoc(pd.hDC);
@@ -278,5 +396,3 @@ void FileHandler::Print(HWND hwnd) {
         DeleteDC(pd.hDC);
     }
 }
-
-// PRIVATE METHODS

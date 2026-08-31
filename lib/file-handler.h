@@ -10,18 +10,26 @@
 /// Handles file operations for the application.
 /// A facade pattern that provides a simplified interface for file operations.
 class FileHandler {
-    HWND text_edit_;
+    HWND text_edit_{nullptr};
     std::wstring current_file_path_;
+    bool is_dirty_{false};
 
    public:
-    FileHandler(HWND edit_hwnd);
+    FileHandler(HWND edit_hwnd = nullptr);
 
-    void Open(HWND window_handler);
-    void Save(HWND window_handler);
-    void SaveAs(HWND window_handler);
-    void Print(HWND window_handler);
+    bool New(HWND hwnd);
+    bool Open(HWND hwnd);
+    bool Save(HWND hwnd);
+    bool SaveAs(HWND hwnd);
+    void Print(HWND hwnd);
 
-    void SetEditHandle(HWND window_handler);
+    bool PromptSaveIfDirty(HWND hwnd);
+    void SetEditHandle(HWND edit_hwnd);
+    void SetDirty(bool dirty);
+    bool IsDirty() const;
+
+    std::wstring GetFilePath() const;
+    std::wstring GetFileName() const;
 };
 
 #endif

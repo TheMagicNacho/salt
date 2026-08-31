@@ -4,30 +4,7 @@ module(name="salt", version="0.1.0")
 # ADD THIS LINE: Fetch rules_cc from the Bazel Central Registry
 bazel_dep(name="rules_cc", version="0.2.17")
 
-http_archive = use_repo_rule(
-    "@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive"
-)
 
-http_archive(
-    name="windows_app_sdk",
-    url="https://www.nuget.org/api/v2/package/Microsoft.WindowsAppSDK/1.6.240923002",
-    type="zip",
-    build_file="//third_party:windows_app_sdk.BUILD",
-)
-
-http_archive(
-    name="webview2",
-    url="https://www.nuget.org/api/v2/package/Microsoft.Web.WebView2/1.0.3719.77",
-    type="zip",
-    build_file="//third_party:webview2.BUILD",
-)
-
-http_archive(
-    name="cppwinrt_tool",
-    url="https://www.nuget.org/api/v2/package/Microsoft.Windows.CppWinRT/2.0.240405.15",
-    type="zip",
-    build_file="//third_party:cppwinrt_tool.BUILD",
-)
 
 bazel_dep(name="hedron_compile_commands", dev_dependency=True)
 git_override(
