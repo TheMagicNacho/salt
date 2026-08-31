@@ -1,6 +1,6 @@
-#ifndef UNICODE
-#define UNICODE
-#endif
+// #ifndef UNICODE
+// #define UNICODE
+// #endif
 #include <windows.h>
 #include <winrt/Microsoft.UI.Xaml.h>
 #include <winrt/Microsoft.UI.Xaml.Controls.h>
