@@ -15,6 +15,7 @@ cc_binary(
     srcs = ["main.cc"],
     deps = [
         ":winrt_headers",
+        "@windows_app_sdk//:headers",
         "@windows_app_sdk//:libs",
         "//lib:salt_lib",
     ],

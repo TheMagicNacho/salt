@@ -22,3 +22,10 @@ cc_library(
     deps = [":lib_import_" + str(idx) for idx in range(len(_LIB_FILES))],
     visibility = ["//visibility:public"],
 )
+
+cc_library(
+    name = "headers",
+    hdrs = glob(["include/**/*.h", "include/**/*.hpp"], allow_empty = True),
+    includes = ["include"],
+    visibility = ["//visibility:public"],
+)

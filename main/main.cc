@@ -1,9 +1,12 @@
-
+#ifndef UNICODE
+#define UNICODE
+#endif
 #include <windows.h>
 #include <winrt/Microsoft.UI.Xaml.h>
 #include <winrt/Microsoft.UI.Xaml.Controls.h>
 #include <winrt/Windows.Foundation.Collections.h>
 #include <winrt/Windows.Foundation.h>
+#include <MddBootstrap.h>
 
 using namespace winrt;
 using namespace Microsoft::UI::Xaml;
@@ -13,7 +16,6 @@ struct App : ApplicationT<App> {
     void OnLaunched(LaunchActivatedEventArgs const&) {
         auto button = Button();
         button.Content(box_value(L"Run"));
-
         m_window = Window();
         m_window.Content(button);
         m_window.Title(L"WinUI3 Prototype");
@@ -26,9 +28,20 @@ struct App : ApplicationT<App> {
 
 int APIENTRY wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
     winrt::init_apartment(winrt::apartment_type::single_threaded);
-    Application::Start([](winrt::Microsoft::UI::Xaml::ApplicationInitializationCallbackParams const&) {
-        make<App>();
-    });
+
+    // Initialize the Windows App SDK Bootstrap for unpackaged deployment (Version 1.6)
+    HRESULT hr = MddBootstrapInitialize(0x00010006, nullptr, {});
+    if (FAILED(hr)) {
+        return hr;
+    }
+
+    Application::Start(
+        [](winrt::Microsoft::UI::Xaml::ApplicationInitializationCallbackParams const&) {
+            make<App>();
+        });
+
+    MddBootstrapShutdown();
+    return 0;
 }
 
 // #ifndef UNICODE
