@@ -21,6 +21,9 @@ This is the text editor if your salty that microsoft made notepad so bloated.
 - To build: `bazelisk build //main:salt`
   - Building will place the executable in: `.\bazel-bin\main\salt.exe`
 
+- To generate docs: `bazelisk run //lib:docs`
+  - Docs will be placed in: `.\bazel-bin\lib\docs`
+
 # FAQ
 
 - Does this have to run in windows 11?

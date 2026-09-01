@@ -2,6 +2,11 @@
 module(name = "salt", version = "0.1.0")
 
 bazel_dep(name = "rules_cc", version = "0.2.17")
+bazel_dep(name = "platforms", version = "1.1.0")
+
+bazel_dep(name = "rules_doxygen", version = "2.6.4")
+doxygen_extension = use_extension("@rules_doxygen//:extensions.bzl", "doxygen_extension")
+use_repo(doxygen_extension, "doxygen")
 
 # Compile commands extractor for clangd / IDE support
 bazel_dep(name = "hedron_compile_commands", dev_dependency = True)

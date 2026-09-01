@@ -2,6 +2,9 @@
 #include <shobjidl.h>
 
 namespace {
+
+/// Normalizes line endings in the given text to \r\n format.
+/// Used for managing CLRF files appropriately.
 std::wstring NormalizeLineEndings(const std::wstring& text) {
     std::wstring normalized;
     normalized.reserve(text.size() * 6 / 5);
@@ -150,15 +153,15 @@ std::wstring DecodeTextFile(const char* raw_buffer, DWORD dw_size) {
 std::wstring GetOpenFilePathModern(HWND hwnd) {
     std::wstring result;
     IFileOpenDialog* pFileOpen = nullptr;
-    HRESULT hr = CoCreateInstance(CLSID_FileOpenDialog, NULL, CLSCTX_ALL,
-                                  IID_IFileOpenDialog, reinterpret_cast<void**>(&pFileOpen));
+    HRESULT hr = CoCreateInstance(CLSID_FileOpenDialog, NULL, CLSCTX_ALL, IID_IFileOpenDialog,
+                                  reinterpret_cast<void**>(&pFileOpen));
     if (SUCCEEDED(hr)) {
         COMDLG_FILTERSPEC rgSpec[] = {
-            { L"All Supported Files (*.txt, *.md, *.json, *.cpp, *.h)", L"*.txt;*.md;*.json;*.cpp;*.h;*.c;*.hpp;*.bzl;*.py;*.js;*.ts;*.html;*.css" },
-            { L"Text Files (*.txt)", L"*.txt" },
-            { L"Markdown Files (*.md)", L"*.md" },
-            { L"All Files (*.*)", L"*.*" }
-        };
+            {L"All Supported Files (*.txt, *.md, *.json, *.cpp, *.h)",
+             L"*.txt;*.md;*.json;*.cpp;*.h;*.c;*.hpp;*.bzl;*.py;*.js;*.ts;*.html;*.css"},
+            {L"Text Files (*.txt)", L"*.txt"},
+            {L"Markdown Files (*.md)", L"*.md"},
+            {L"All Files (*.*)", L"*.*"}};
         pFileOpen->SetFileTypes(ARRAYSIZE(rgSpec), rgSpec);
 
         hr = pFileOpen->Show(hwnd);
@@ -195,14 +198,12 @@ std::wstring GetOpenFilePathModern(HWND hwnd) {
 std::wstring GetSaveFilePathModern(HWND hwnd) {
     std::wstring result;
     IFileSaveDialog* pFileSave = nullptr;
-    HRESULT hr = CoCreateInstance(CLSID_FileSaveDialog, NULL, CLSCTX_ALL,
-                                  IID_IFileSaveDialog, reinterpret_cast<void**>(&pFileSave));
+    HRESULT hr = CoCreateInstance(CLSID_FileSaveDialog, NULL, CLSCTX_ALL, IID_IFileSaveDialog,
+                                  reinterpret_cast<void**>(&pFileSave));
     if (SUCCEEDED(hr)) {
-        COMDLG_FILTERSPEC rgSpec[] = {
-            { L"Text Files (*.txt)", L"*.txt" },
-            { L"Markdown Files (*.md)", L"*.md" },
-            { L"All Files (*.*)", L"*.*" }
-        };
+        COMDLG_FILTERSPEC rgSpec[] = {{L"Text Files (*.txt)", L"*.txt"},
+                                      {L"Markdown Files (*.md)", L"*.md"},
+                                      {L"All Files (*.*)", L"*.*"}};
         pFileSave->SetFileTypes(ARRAYSIZE(rgSpec), rgSpec);
         pFileSave->SetDefaultExtension(L"txt");
 
@@ -263,14 +264,14 @@ bool FileHandler::PromptSaveIfDirty(HWND hwnd) {
     if (!is_dirty_) return true;
 
     std::wstring msg = L"Do you want to save changes to " + GetFileName() + L"?";
-    int result = MessageBoxW(hwnd, msg.c_str(), L"Salt Text Editor",
-                             MB_YESNOCANCEL | MB_ICONQUESTION);
+    int result =
+        MessageBoxW(hwnd, msg.c_str(), L"Salt Text Editor", MB_YESNOCANCEL | MB_ICONQUESTION);
     if (result == IDYES) {
         return Save(hwnd);
     } else if (result == IDNO) {
         return true;
     }
-    return false; // IDCANCEL
+    return false;  // IDCANCEL
 }
 
 bool FileHandler::New(HWND hwnd) {
@@ -331,15 +332,16 @@ bool FileHandler::Save(HWND hwnd) {
 
     if (!text_edit_) return false;
 
-    HANDLE hFile = CreateFileW(current_file_path_.c_str(), GENERIC_WRITE, 0, NULL,
-                               CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+    HANDLE hFile = CreateFileW(current_file_path_.c_str(), GENERIC_WRITE, 0, NULL, CREATE_ALWAYS,
+                               FILE_ATTRIBUTE_NORMAL, NULL);
     if (hFile == INVALID_HANDLE_VALUE) {
         MessageBoxW(hwnd, L"Failed to save file.", L"Error", MB_ICONERROR);
         return false;
     }
 
     int len = GetWindowTextLengthW(text_edit_);
-    wchar_t* buffer = (wchar_t*)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, (len + 1) * sizeof(wchar_t));
+    wchar_t* buffer =
+        (wchar_t*)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, (len + 1) * sizeof(wchar_t));
     GetWindowTextW(text_edit_, buffer, len + 1);
 
     int utf8Len = WideCharToMultiByte(CP_UTF8, 0, buffer, len, NULL, 0, NULL, NULL);
