@@ -1,0 +1,8 @@
+﻿# Common build options for Windows MSVC
+build --cxxopt=/std:c++20
+build --copt=/utf-8
+build --enable_runfiles=false
+
+# Release configuration: bazelisk build -c opt //main:salt
+build:opt --compilation_mode=opt
+build:opt --copt=/O2

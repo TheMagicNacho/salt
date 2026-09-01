@@ -6,10 +6,7 @@
 #include <windows.h>
 #include <string>
 
-enum class ThemeMode {
-    Dark,
-    Light
-};
+enum class ThemeMode { Dark, Light };
 
 class OptionsHandler {
     HWND edit_hwnd_{nullptr};
@@ -19,7 +16,7 @@ class OptionsHandler {
     int font_size_pt_{11};
     bool word_wrap_{true};
     bool show_status_bar_{true};
-    ThemeMode theme_mode_{ThemeMode::Dark};
+    ThemeMode theme_mode_{ThemeMode::Light};
     HBRUSH dark_bg_brush_{nullptr};
     HBRUSH light_bg_brush_{nullptr};
 
