@@ -9,8 +9,18 @@ cc_library(
         "WINVER=0x0A00",
         "_WIN32_WINNT=0x0A00",
     ],
-    srcs=["main-window.cc", "file-handler.cc", "options-handler.cc"],
-    hdrs=["main-window.h", "file-handler.h", "options-handler.h"],
+    srcs=[
+        "errors.cc",
+        "main-window.cc",
+        "file-handler.cc",
+        "options-handler.cc",
+    ],
+    hdrs=[
+        "errors.h",
+        "main-window.h",
+        "file-handler.h",
+        "options-handler.h",
+    ],
     visibility=["//main:__pkg__"],
 )
 

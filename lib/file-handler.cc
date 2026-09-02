@@ -166,16 +166,16 @@ std::wstring GetOpenFilePathModern(HWND hwnd) {
 
         hr = open_file->Show(hwnd);
         if (SUCCEEDED(hr)) {
-            IShellItem* pItem = nullptr;
-            hr = open_file->GetResult(&pItem);
+            IShellItem* item = nullptr;
+            hr = open_file->GetResult(&item);
             if (SUCCEEDED(hr)) {
                 PWSTR file_path = nullptr;
-                hr = pItem->GetDisplayName(SIGDN_FILESYSPATH, &file_path);
+                hr = item->GetDisplayName(SIGDN_FILESYSPATH, &file_path);
                 if (SUCCEEDED(hr)) {
                     result = file_path;
                     CoTaskMemFree(file_path);
                 }
-                pItem->Release();
+                item->Release();
             }
         }
         open_file->Release();
@@ -203,6 +203,7 @@ std::wstring GetSaveFilePathModern(HWND hwnd) {
     if (SUCCEEDED(hr)) {
         COMDLG_FILTERSPEC spec[] = {{L"Text Files (*.txt)", L"*.txt"},
                                     {L"Markdown Files (*.md)", L"*.md"},
+                                    {L"JSON (*.json)", L"*.json"},
                                     {L"All Files (*.*)", L"*.*"}};
         file_save->SetFileTypes(ARRAYSIZE(spec), spec);
         file_save->SetDefaultExtension(L"txt");
@@ -309,11 +310,11 @@ bool FileHandler::Open(HWND hwnd) {
     bool success = false;
 
     if (ReadFile(file_handle, raw_buffer, dw_size, &dw_read, NULL)) {
-        std::wstring wideBuffer = DecodeTextFile(raw_buffer, dw_size);
-        wideBuffer = NormalizeLineEndings(wideBuffer);
+        std::wstring wide_buffer = DecodeTextFile(raw_buffer, dw_size);
+        wide_buffer = NormalizeLineEndings(wide_buffer);
 
         if (text_edit_) {
-            SetWindowTextW(text_edit_, wideBuffer.c_str());
+            SetWindowTextW(text_edit_, wide_buffer.c_str());
             current_file_path_ = selected_file;
             is_dirty_ = false;
             success = true;
@@ -344,18 +345,18 @@ bool FileHandler::Save(HWND hwnd) {
         (wchar_t*)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, (len + 1) * sizeof(wchar_t));
     GetWindowTextW(text_edit_, buffer, len + 1);
 
-    int utf8Len = WideCharToMultiByte(CP_UTF8, 0, buffer, len, NULL, 0, NULL, NULL);
-    char* utf8Buffer = (char*)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, utf8Len);
-    WideCharToMultiByte(CP_UTF8, 0, buffer, len, utf8Buffer, utf8Len, NULL, NULL);
+    int utf_8_len = WideCharToMultiByte(CP_UTF8, 0, buffer, len, NULL, 0, NULL, NULL);
+    char* utf_8_buff = (char*)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, utf_8_len);
+    WideCharToMultiByte(CP_UTF8, 0, buffer, len, utf_8_buff, utf_8_len, NULL, NULL);
 
-    DWORD dwWritten = 0;
-    BOOL writeSuccess = WriteFile(hFile, utf8Buffer, utf8Len, &dwWritten, NULL);
+    DWORD written = 0;
+    BOOL write_success = WriteFile(hFile, utf_8_buff, utf_8_len, &written, NULL);
 
-    HeapFree(GetProcessHeap(), 0, utf8Buffer);
+    HeapFree(GetProcessHeap(), 0, utf_8_buff);
     HeapFree(GetProcessHeap(), 0, buffer);
     CloseHandle(hFile);
 
-    if (writeSuccess) {
+    if (write_success) {
         is_dirty_ = false;
         return true;
     }
