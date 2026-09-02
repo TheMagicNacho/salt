@@ -4,7 +4,7 @@
 namespace {
 
 /// Normalizes line endings in the given text to \r\n format.
-/// Used for managing CLRF files appropriately.
+/// Used for managing CLRF files appropriately.r
 std::wstring NormalizeLineEndings(const std::wstring& text) {
     std::wstring normalized;
     normalized.reserve(text.size() * 6 / 5);
@@ -37,14 +37,14 @@ std::wstring Utf8ToWide(const char* raw_buffer, int raw_len) {
     int wideLen = MultiByteToWideChar(CP_UTF8, 0, raw_buffer, raw_len, NULL, 0);
     if (wideLen <= 0) return L"";
 
-    std::wstring wideBuffer(wideLen, L'\0');
-    MultiByteToWideChar(CP_UTF8, 0, raw_buffer, raw_len, &wideBuffer[0], wideLen);
+    std::wstring wide_buffer(wideLen, L'\0');
+    MultiByteToWideChar(CP_UTF8, 0, raw_buffer, raw_len, &wide_buffer[0], wideLen);
 
-    if (!wideBuffer.empty() && wideBuffer.back() == L'\0') {
-        wideBuffer.pop_back();
+    if (!wide_buffer.empty() && wide_buffer.back() == L'\0') {
+        wide_buffer.pop_back();
     }
 
-    return wideBuffer;
+    return wide_buffer;
 }
 
 std::wstring Utf16LEToWide(const char* raw_buffer, int raw_len) {
@@ -59,17 +59,17 @@ std::wstring Utf16LEToWide(const char* raw_buffer, int raw_len) {
     int char_count = (raw_len - offset) / sizeof(wchar_t);
     if (char_count <= 0) return L"";
 
-    std::wstring wideBuffer(char_count, L'\0');
+    std::wstring wide_buffer(char_count, L'\0');
 
     for (int i = 0; i < char_count; ++i) {
         const unsigned char* p =
             reinterpret_cast<const unsigned char*>(raw_buffer + offset + (i * sizeof(wchar_t)));
         wchar_t ch = static_cast<wchar_t>(static_cast<unsigned short>(p[0]) |
                                           (static_cast<unsigned short>(p[1]) << 8));
-        wideBuffer[i] = ch;
+        wide_buffer[i] = ch;
     }
 
-    return wideBuffer;
+    return wide_buffer;
 }
 
 std::wstring Utf16BEToWide(const char* raw_buffer, int raw_len) {
@@ -126,25 +126,25 @@ std::wstring DecodeTextFile(const char* raw_buffer, DWORD dw_size) {
 
     int wideLen = MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, raw_buffer, dw_size, NULL, 0);
     if (wideLen > 0) {
-        std::wstring wideBuffer(wideLen, L'\0');
-        MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, raw_buffer, dw_size, &wideBuffer[0],
+        std::wstring wide_buffer(wideLen, L'\0');
+        MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, raw_buffer, dw_size, &wide_buffer[0],
                             wideLen);
 
-        if (!wideBuffer.empty() && wideBuffer.back() == L'\0') {
-            wideBuffer.pop_back();
+        if (!wide_buffer.empty() && wide_buffer.back() == L'\0') {
+            wide_buffer.pop_back();
         }
-        return wideBuffer;
+        return wide_buffer;
     }
 
     wideLen = MultiByteToWideChar(CP_ACP, 0, raw_buffer, dw_size, NULL, 0);
     if (wideLen > 0) {
-        std::wstring wideBuffer(wideLen, L'\0');
-        MultiByteToWideChar(CP_ACP, 0, raw_buffer, dw_size, &wideBuffer[0], wideLen);
+        std::wstring wide_buffer(wideLen, L'\0');
+        MultiByteToWideChar(CP_ACP, 0, raw_buffer, dw_size, &wide_buffer[0], wideLen);
 
-        if (!wideBuffer.empty() && wideBuffer.back() == L'\0') {
-            wideBuffer.pop_back();
+        if (!wide_buffer.empty() && wide_buffer.back() == L'\0') {
+            wide_buffer.pop_back();
         }
-        return wideBuffer;
+        return wide_buffer;
     }
 
     return L"";
@@ -152,9 +152,9 @@ std::wstring DecodeTextFile(const char* raw_buffer, DWORD dw_size) {
 
 std::wstring GetOpenFilePathModern(HWND hwnd) {
     std::wstring result;
-    IFileOpenDialog* pFileOpen = nullptr;
+    IFileOpenDialog* open_file = nullptr;
     HRESULT hr = CoCreateInstance(CLSID_FileOpenDialog, NULL, CLSCTX_ALL, IID_IFileOpenDialog,
-                                  reinterpret_cast<void**>(&pFileOpen));
+                                  reinterpret_cast<void**>(&open_file));
     if (SUCCEEDED(hr)) {
         COMDLG_FILTERSPEC rgSpec[] = {
             {L"All Supported Files (*.txt, *.md, *.json, *.cpp, *.h)",
@@ -162,34 +162,34 @@ std::wstring GetOpenFilePathModern(HWND hwnd) {
             {L"Text Files (*.txt)", L"*.txt"},
             {L"Markdown Files (*.md)", L"*.md"},
             {L"All Files (*.*)", L"*.*"}};
-        pFileOpen->SetFileTypes(ARRAYSIZE(rgSpec), rgSpec);
+        open_file->SetFileTypes(ARRAYSIZE(rgSpec), rgSpec);
 
-        hr = pFileOpen->Show(hwnd);
+        hr = open_file->Show(hwnd);
         if (SUCCEEDED(hr)) {
             IShellItem* pItem = nullptr;
-            hr = pFileOpen->GetResult(&pItem);
+            hr = open_file->GetResult(&pItem);
             if (SUCCEEDED(hr)) {
-                PWSTR pszFilePath = nullptr;
-                hr = pItem->GetDisplayName(SIGDN_FILESYSPATH, &pszFilePath);
+                PWSTR file_path = nullptr;
+                hr = pItem->GetDisplayName(SIGDN_FILESYSPATH, &file_path);
                 if (SUCCEEDED(hr)) {
-                    result = pszFilePath;
-                    CoTaskMemFree(pszFilePath);
+                    result = file_path;
+                    CoTaskMemFree(file_path);
                 }
                 pItem->Release();
             }
         }
-        pFileOpen->Release();
+        open_file->Release();
     } else {
         // Fallback to legacy GetOpenFileName
         OPENFILENAME ofn = {sizeof(OPENFILENAME)};
-        wchar_t szFile[MAX_PATH] = {0};
+        wchar_t file_size[MAX_PATH] = {0};
         ofn.hwndOwner = hwnd;
-        ofn.lpstrFile = szFile;
+        ofn.lpstrFile = file_size;
         ofn.nMaxFile = MAX_PATH;
         ofn.lpstrFilter = L"All Files (*.*)\0*.*\0Text Files (*.txt)\0*.txt\0";
         ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST;
         if (GetOpenFileName(&ofn)) {
-            result = szFile;
+            result = file_size;
         }
     }
     return result;
@@ -197,42 +197,42 @@ std::wstring GetOpenFilePathModern(HWND hwnd) {
 
 std::wstring GetSaveFilePathModern(HWND hwnd) {
     std::wstring result;
-    IFileSaveDialog* pFileSave = nullptr;
+    IFileSaveDialog* file_save = nullptr;
     HRESULT hr = CoCreateInstance(CLSID_FileSaveDialog, NULL, CLSCTX_ALL, IID_IFileSaveDialog,
-                                  reinterpret_cast<void**>(&pFileSave));
+                                  reinterpret_cast<void**>(&file_save));
     if (SUCCEEDED(hr)) {
-        COMDLG_FILTERSPEC rgSpec[] = {{L"Text Files (*.txt)", L"*.txt"},
-                                      {L"Markdown Files (*.md)", L"*.md"},
-                                      {L"All Files (*.*)", L"*.*"}};
-        pFileSave->SetFileTypes(ARRAYSIZE(rgSpec), rgSpec);
-        pFileSave->SetDefaultExtension(L"txt");
+        COMDLG_FILTERSPEC spec[] = {{L"Text Files (*.txt)", L"*.txt"},
+                                    {L"Markdown Files (*.md)", L"*.md"},
+                                    {L"All Files (*.*)", L"*.*"}};
+        file_save->SetFileTypes(ARRAYSIZE(spec), spec);
+        file_save->SetDefaultExtension(L"txt");
 
-        hr = pFileSave->Show(hwnd);
+        hr = file_save->Show(hwnd);
         if (SUCCEEDED(hr)) {
-            IShellItem* pItem = nullptr;
-            hr = pFileSave->GetResult(&pItem);
+            IShellItem* item = nullptr;
+            hr = file_save->GetResult(&item);
             if (SUCCEEDED(hr)) {
                 PWSTR pszFilePath = nullptr;
-                hr = pItem->GetDisplayName(SIGDN_FILESYSPATH, &pszFilePath);
+                hr = item->GetDisplayName(SIGDN_FILESYSPATH, &pszFilePath);
                 if (SUCCEEDED(hr)) {
                     result = pszFilePath;
                     CoTaskMemFree(pszFilePath);
                 }
-                pItem->Release();
+                item->Release();
             }
         }
-        pFileSave->Release();
+        file_save->Release();
     } else {
         // Fallback to legacy GetSaveFileName
         OPENFILENAME ofn = {sizeof(OPENFILENAME)};
-        wchar_t szFile[MAX_PATH] = {0};
+        wchar_t file_size[MAX_PATH] = {0};
         ofn.hwndOwner = hwnd;
-        ofn.lpstrFile = szFile;
+        ofn.lpstrFile = file_size;
         ofn.nMaxFile = MAX_PATH;
         ofn.lpstrFilter = L"Text Files (*.txt)\0*.txt\0All Files (*.*)\0*.*\0";
         ofn.Flags = OFN_OVERWRITEPROMPT;
         if (GetSaveFileName(&ofn)) {
-            result = szFile;
+            result = file_size;
         }
     }
     return result;
