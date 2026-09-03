@@ -1,6 +1,8 @@
 load("@rules_cc//cc:cc_library.bzl", "cc_library")
 load("@doxygen//:doxygen.bzl", "doxygen")
 
+exports_files(["resource.h"])
+
 cc_library(
     name="salt_lib",
     defines = [
@@ -20,6 +22,7 @@ cc_library(
         "main-window.h",
         "file-handler.h",
         "options-handler.h",
+        "resource.h",
     ],
     visibility=["//main:__pkg__"],
 )

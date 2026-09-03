@@ -17,6 +17,7 @@
     </StandardDirectory>
 
     <StandardDirectory Id="ProgramMenuFolder" />
+    <StandardDirectory Id="DesktopFolder" />
 
     <ComponentGroup Id="ProductComponents">
       <!-- Main executable in C:\Program Files\Salt -->
@@ -45,7 +46,6 @@
                 />
       </Component>
 
-      <!-- Start Menu Shortcut for Windows Search indexing -->
       <Component Id="StartMenuShortcutComponent" Directory="ProgramMenuFolder">
         <Shortcut
                     Id="ApplicationStartMenuShortcut"
@@ -81,6 +81,24 @@
                         />
           </RegistryKey>
         </RegistryKey>
+      </Component>
+      <!-- Create a desktop shortcut for the application -->
+      <Component Id="DesktopShortcutComponent" Directory="DesktopFolder">
+        <Shortcut
+                    Id="ApplicationDesktopShortcut"
+                    Name="Salt"
+                    Description="Salt Text Editor"
+                    Target="[INSTALLFOLDER]salt.exe"
+                    WorkingDirectory="INSTALLFOLDER"
+                />
+        <RegistryValue
+                    Root="HKCU"
+                    Key="Software\Salt"
+                    Name="DesktopShortcut"
+                    Type="integer"
+                    Value="1"
+                    KeyPath="yes"
+                />
       </Component>
     </ComponentGroup>
 

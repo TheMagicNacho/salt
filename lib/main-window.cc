@@ -1,4 +1,5 @@
 #include "main-window.h"
+#include "resource.h"
 
 #include <dwmapi.h>
 #include <uxtheme.h>
@@ -25,10 +26,13 @@ bool MainWindow::RegisterClass(HINSTANCE instance) {
     wc.style = CS_HREDRAW | CS_VREDRAW;
     wc.lpfnWndProc = MainWindow::StaticWndProc;
     wc.hInstance = instance;
+    wc.hIcon = LoadIconW(instance, MAKEINTRESOURCEW(IDI_APP_ICON));
+    wc.hIconSm = (HICON)LoadImageW(instance, MAKEINTRESOURCEW(IDI_APP_ICON), IMAGE_ICON,
+                                   GetSystemMetrics(SM_CXSMICON), GetSystemMetrics(SM_CYSMICON),
+                                   LR_DEFAULTCOLOR);
     wc.hCursor = LoadCursorW(NULL, IDC_ARROW);
     wc.hbrBackground = CreateSolidBrush(RGB(30, 30, 30));
     wc.lpszClassName = kClassName;
-
     return RegisterClassExW(&wc) != 0;
 }
 
@@ -230,6 +234,9 @@ void MainWindow::RecreateEditControl() {
     int tabStops = 16;
     SendMessageW(edit_hwnd_, EM_SETTABSTOPS, 1, reinterpret_cast<LPARAM>(&tabStops));
 
+    // Remove the default 30,000 / 64KB text limit for the edit control
+    SendMessageW(edit_hwnd_, EM_SETLIMITTEXT, 0, 0);
+
     file_handler_.SetEditHandle(edit_hwnd_);
     options_handler_.SetEditHandle(edit_hwnd_);
 }
@@ -244,9 +251,9 @@ LRESULT MainWindow::HandleMessage(UINT msg, WPARAM param_w, LPARAM param_l) {
             if (options_handler_.IsStatusBarVisible()) {
                 status_style |= WS_VISIBLE;
             }
-            status_hwnd_ = CreateWindowExW(
-                0, STATUSCLASSNAMEW, NULL, status_style, 0, 0, 0, 0,
-                hwnd_, reinterpret_cast<HMENU>(ControlId::MainStatus), GetModuleHandle(NULL), NULL);
+            status_hwnd_ = CreateWindowExW(0, STATUSCLASSNAMEW, NULL, status_style, 0, 0, 0, 0,
+                                           hwnd_, reinterpret_cast<HMENU>(ControlId::MainStatus),
+                                           GetModuleHandle(NULL), NULL);
 
             int statusParts[] = {160, 310, 440, 540, -1};
             SendMessageW(status_hwnd_, SB_SETPARTS, 5, reinterpret_cast<LPARAM>(statusParts));

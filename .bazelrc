@@ -7,6 +7,8 @@ build --action_env=USERPROFILE
 build --action_env=APPDATA
 build --action_env=LOCALAPPDATA
 build --action_env=ProgramFiles
+build --action_env=ProgramFiles(x86)
+build --action_env=SystemRoot
 build --action_env=TEMP
 build --action_env=TMP
 

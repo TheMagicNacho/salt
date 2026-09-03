@@ -1,0 +1,4 @@
+#include "lib/resource.h"
+
+// IDI_APP_ICON (101) as the lowest ID ensures Windows Explorer uses it as the default .exe icon
+IDI_APP_ICON ICON "app.ico"
