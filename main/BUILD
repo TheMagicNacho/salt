@@ -3,6 +3,7 @@ load("@rules_cc//cc:defs.bzl", "cc_binary")
 
 cc_binary(
     name = "salt",
+    visibility = ["//visibility:public"],
     srcs = ["main.cc"],
     defines = [
         "UNICODE",

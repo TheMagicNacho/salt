@@ -20,6 +20,8 @@ This is the text editor if your salty that microsoft made notepad so bloated.
 - To run: `bazelisk run //main:salt`
 - To build: `bazelisk build //main:salt`
   - Building will place the executable in: `.\bazel-bin\main\salt.exe`
+- To build installer: `bazelisk build //installer:salt_msi`
+  - Installer will be placed in: `.\bazel-bin\installer\salt.msi`
 
 - To generate docs: `bazelisk run //lib:docs`
   - Docs will be placed in: `.\bazel-bin\lib\docs`

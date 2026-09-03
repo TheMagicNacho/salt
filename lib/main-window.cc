@@ -240,8 +240,12 @@ LRESULT MainWindow::HandleMessage(UINT msg, WPARAM param_w, LPARAM param_l) {
             EnableDarkMode(options_handler_.IsDarkMode());
 
             // Create Status Bar
+            DWORD status_style = WS_CHILD | SBARS_SIZEGRIP;
+            if (options_handler_.IsStatusBarVisible()) {
+                status_style |= WS_VISIBLE;
+            }
             status_hwnd_ = CreateWindowExW(
-                0, STATUSCLASSNAMEW, NULL, WS_CHILD | WS_VISIBLE | SBARS_SIZEGRIP, 0, 0, 0, 0,
+                0, STATUSCLASSNAMEW, NULL, status_style, 0, 0, 0, 0,
                 hwnd_, reinterpret_cast<HMENU>(ControlId::MainStatus), GetModuleHandle(NULL), NULL);
 
             int statusParts[] = {160, 310, 440, 540, -1};

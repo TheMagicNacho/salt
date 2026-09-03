@@ -26,7 +26,7 @@ class OptionsHandler {
     std::wstring font_name_{L"Cascadia Code"};
     int font_size_pt_{11};
     bool word_wrap_{true};
-    bool show_status_bar_{true};
+    bool show_status_bar_{false};
     ThemeMode theme_mode_{ThemeMode::Light};
     HBRUSH dark_bg_brush_{nullptr};
     HBRUSH light_bg_brush_{nullptr};

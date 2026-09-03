@@ -1,7 +1,14 @@
-﻿# Common build options for Windows MSVC
+# Common build options for Windows MSVC
 build --cxxopt=/std:c++20
 build --copt=/utf-8
 build --enable_runfiles=false
+build --action_env=PATH
+build --action_env=USERPROFILE
+build --action_env=APPDATA
+build --action_env=LOCALAPPDATA
+build --action_env=ProgramFiles
+build --action_env=TEMP
+build --action_env=TMP
 
 # Release configuration: bazelisk build -c opt //main:salt
 build:opt --compilation_mode=opt

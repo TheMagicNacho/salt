@@ -1,0 +1,9 @@
+<Project Sdk="WixToolset.Sdk/5.0.2">
+  <PropertyGroup>
+    <OutputType>Package</OutputType>
+    <Platform>x64</Platform>
+    <Platforms>x64</Platforms>
+    <SourceExe Condition="'$(SourceExe)' == ''">salt.exe</SourceExe>
+    <DefineConstants>SourceExe=$(SourceExe)</DefineConstants>
+  </PropertyGroup>
+</Project>
