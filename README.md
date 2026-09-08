@@ -28,6 +28,10 @@ This is the text editor if your salty that microsoft made notepad so bloated.
 - To generate docs: `bazelisk run //lib:docs`
   - Docs will be placed in: `.\bazel-bin\lib\docs`
 
+- To check formatting / lint: `bazelisk build //:lint` (or `bazelisk test //:format_test`)
+- To auto-format code: `bazelisk run //:format`
+- To run tests (when test targets are present): `bazelisk test //tests:all`
+
 # FAQ
 
 - Does this have to run in windows 11?
