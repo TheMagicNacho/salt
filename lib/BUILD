@@ -16,6 +16,7 @@ cc_library(
         "main-window.cc",
         "file-handler.cc",
         "options-handler.cc",
+        "menu-bar.cc",
     ],
     hdrs=[
         "errors.h",
@@ -23,6 +24,8 @@ cc_library(
         "file-handler.h",
         "options-handler.h",
         "resource.h",
+        "menu-bar.h",
+        "context.h",
     ],
     visibility=["//main:__pkg__"],
 )
