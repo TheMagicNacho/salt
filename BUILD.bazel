@@ -1,0 +1,60 @@
+# BUILD.bazel (Workspace root)
+
+load("//tools:format_rules.bzl", "format_fix", "format_test")
+
+exports_files([".clang-format"])
+
+filegroup(
+    name = "all_sources",
+    srcs = glob(
+        [
+            "lib/**/*.cc",
+            "lib/**/*.h",
+            "main/**/*.cc",
+            "main/**/*.h",
+            "tests/**/*.cc",
+            "tests/**/*.h",
+        ],
+        allow_empty = True,
+    ),
+    visibility = ["//visibility:public"],
+)
+
+# Test target: bazelisk test //:format_test
+format_test(
+    name = "format_test",
+    srcs = [":all_sources"],
+    checker = "//tools:check_format.bat",
+    config = ".clang-format",
+)
+
+# Runnable target: bazelisk run //:format
+format_fix(
+    name = "format",
+    srcs = [":all_sources"],
+    checker = "//tools:check_format.bat",
+    config = ".clang-format",
+)
+
+# Build target for CI linting: bazelisk build //:lint
+genrule(
+    name = "lint",
+    srcs = [
+        ":all_sources",
+        ".clang-format",
+        "//tools:check_format.bat",
+    ],
+    outs = ["lint.ok"],
+    cmd_bat = """call $(location //tools:check_format.bat) --check && type nul > $@""",
+    tags = [
+        "local",
+        "no-sandbox",
+    ],
+    visibility = ["//visibility:public"],
+)
+
+alias(
+    name = "format_check",
+    actual = ":lint",
+    visibility = ["//visibility:public"],
+)

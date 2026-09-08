@@ -1,0 +1,97 @@
+name: Main CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - "**"
+
+permissions:
+  contents: write
+
+jobs:
+  pipeline:
+    name: Lint, Scan, Build & Release
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Setup Bazel
+        uses: bazel-contrib/setup-bazel@0.19.0
+        with:
+          bazelisk-cache: true
+          disk-cache: ${{ github.workflow }}
+          repository-cache: true
+
+      - name: Configure Clang / LLVM Path
+        shell: pwsh
+        run: |
+          if (Test-Path "C:\Program Files\LLVM\bin") {
+            "C:\Program Files\LLVM\bin" | Out-File -FilePath $env:GITHUB_PATH -Append
+          }
+
+      - name: Lint Code (Clang-Format via Bazel)
+        shell: cmd
+        run: bazelisk build //:lint
+
+      - name: Check for Major Vulnerabilities (cppcheck)
+        shell: pwsh
+        run: |
+          if (-not (Get-Command cppcheck -ErrorAction SilentlyContinue)) {
+            Write-Host "Installing cppcheck via Chocolatey..."
+            choco install cppcheck -y --no-progress
+            $cppcheckPath = "C:\Program Files\Cppcheck"
+            if (Test-Path $cppcheckPath) {
+              $cppcheckPath | Out-File -FilePath $env:GITHUB_PATH -Append
+              $env:PATH = "$cppcheckPath;$env:PATH"
+            }
+          }
+          Write-Host "Running vulnerability and safety checks..."
+          cppcheck --enable=warning,portability --error-exitcode=1 --inline-suppr lib/ main/
+
+      - name: Dry Build (Unoptimized)
+        shell: cmd
+        run: bazelisk build //main:salt
+
+      - name: Run Tests (if present)
+        shell: pwsh
+        run: |
+          if (Test-Path "tests/BUILD*") {
+            Write-Host "Discovered test targets. Executing bazelisk test //tests:all ..."
+            bazelisk test //tests:all
+          } else {
+            Write-Host "No tests/ directory found; skipping test step."
+          }
+
+      - name: Optimized Build & Generate MSI Installer
+        shell: cmd
+        run: |
+          bazelisk build -c opt //main:salt
+          bazelisk build -c opt //installer:salt_msi
+
+      - name: Store MSI as 30-Day Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: salt-installer-msi
+          path: bazel-bin/installer/salt.msi
+          retention-days: 30
+          if-no-files-found: error
+
+      - name: Add MSI to GitHub Release (If Tagged)
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: bazel-bin/installer/salt.msi
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -1,0 +1,6 @@
+# tools/BUILD.bazel
+
+exports_files([
+    "check_format.bat",
+    "run_format.bat",
+])
