@@ -16,6 +16,7 @@ cc_library(
         "main-window.cc",
         "file-handler.cc",
         "options-handler.cc",
+        "text-utils.cc",
     ],
     hdrs=[
         "errors.h",
@@ -23,8 +24,9 @@ cc_library(
         "file-handler.h",
         "options-handler.h",
         "resource.h",
+        "text-utils.h",
     ],
-    visibility=["//main:__pkg__"],
+    visibility=["//visibility:public"],
 )
 
 doxygen(
@@ -36,6 +38,8 @@ doxygen(
         "options-handler.cc",
         "main-window.h",
         "main-window.cc",
+        "text-utils.h",
+        "text-utils.cc",
     ],
     project_name = "Salt Text Editor",
     project_brief = "Pure C++ Win32 Text Editor",

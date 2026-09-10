@@ -64,6 +64,10 @@ class OptionsHandler {
     /// @brief Resets the editor font size to the default 11pt.
     void ZoomReset();
 
+    /// @brief Gets the current font size in points.
+    /// @return Current font size in points.
+    int GetFontSize() const;
+
     /// @brief Toggles word wrapping on or off.
     /// @return The new word wrap state (true = enabled).
     bool ToggleWordWrap();
