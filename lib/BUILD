@@ -30,6 +30,16 @@ cc_library(
         "context.h",
     ],
     visibility=["//visibility:public"],
+    linkopts = [
+        "user32.lib",
+        "gdi32.lib",
+        "comctl32.lib",
+        "comdlg32.lib",
+        "dwmapi.lib",
+        "uxtheme.lib",
+        "ole32.lib",
+        "shell32.lib",
+    ],
 )
 
 doxygen(
