@@ -39,6 +39,8 @@ cc_library(
         "uxtheme.lib",
         "ole32.lib",
         "shell32.lib",
+        "menu-bar.h",
+        "context.h",
     ],
 )
 
