@@ -69,6 +69,10 @@ class FileHandler {
     /// @return Full file path as a wide string, or empty if untitled.
     std::wstring GetFilePath() const;
 
+    /// @brief Sets the file path of the currently open document.
+    /// @param path Full file path.
+    void SetFilePath(const std::wstring& path);
+
     /// @brief Returns the display file name (or "Untitled" if not saved yet).
     /// @return File name as a wide string.
     std::wstring GetFileName() const;
