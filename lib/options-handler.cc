@@ -90,14 +90,14 @@ void OptionsHandler::ChooseFontDialog() {
 
 void OptionsHandler::ZoomIn() {
     if (font_size_pt_ < 48) {
-        font_size_pt_ += 2;
+        font_size_pt_ = std::min(48, font_size_pt_ + 2);
         ApplyFont();
     }
 }
 
 void OptionsHandler::ZoomOut() {
     if (font_size_pt_ > 6) {
-        font_size_pt_ -= 2;
+        font_size_pt_ = std::max(6, font_size_pt_ - 2);
         ApplyFont();
     }
 }
@@ -105,6 +105,10 @@ void OptionsHandler::ZoomOut() {
 void OptionsHandler::ZoomReset() {
     font_size_pt_ = 11;
     ApplyFont();
+}
+
+int OptionsHandler::GetFontSize() const {
+    return font_size_pt_;
 }
 
 bool OptionsHandler::ToggleWordWrap() {

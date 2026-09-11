@@ -6,6 +6,9 @@
 
 #include "lib/file-handler.h"
 #include "lib/options-handler.h"
+#include "lib/menu-bar.h"
+#include "lib/errors.h"
+#include "lib/context.h"
 
 /// @file main-window.h
 /// @brief Main application window and message dispatcher for the Salt text editor.
@@ -18,44 +21,6 @@
 /// integration.
 class MainWindow {
    public:
-    /// @enum Command
-    /// @brief Menu command IDs and accelerator action identifiers.
-    enum Command : WORD {
-        // File commands
-        FileNew = 1001,     ///< Create a new document.
-        FileOpen = 1002,    ///< Open an existing file.
-        FileSave = 1003,    ///< Save current document.
-        FileSaveAs = 1004,  ///< Save current document with a new name/location.
-        FilePrint = 1005,   ///< Print document.
-        FileExit = 1006,    ///< Close and exit application.
-
-        // Edit commands
-        EditUndo = 1011,       ///< Undo last edit.
-        EditCut = 1012,        ///< Cut selection to clipboard.
-        EditCopy = 1013,       ///< Copy selection to clipboard.
-        EditPaste = 1014,      ///< Paste clipboard text.
-        EditSelectAll = 1015,  ///< Select all text.
-
-        // View commands
-        ViewWordWrap = 1021,     ///< Toggle word wrapping.
-        ViewFont = 1022,         ///< Open font chooser dialog.
-        ViewZoomIn = 1023,       ///< Increase font size.
-        ViewZoomOut = 1024,      ///< Decrease font size.
-        ViewZoomReset = 1025,    ///< Reset zoom to default.
-        ViewThemeToggle = 1026,  ///< Toggle between dark and light themes.
-        ViewStatusBar = 1027,    ///< Toggle status bar visibility.
-
-        // Help commands
-        HelpAbout = 1031,  ///< Show About dialog.
-    };
-
-    /// @enum ControlId
-    /// @brief Control IDs for child Win32 windows.
-    enum ControlId : WORD {
-        MainEdit = 2001,    ///< Primary multiline edit control ID.
-        MainStatus = 2002,  ///< Bottom status bar control ID.
-    };
-
     /// @brief The Win32 window class name registered for the main window.
     static constexpr const wchar_t* kClassName = L"SaltTextEditorWindowClass";
 
@@ -101,10 +66,13 @@ class MainWindow {
     void UpdateStatusBar();
 
     /// @brief Builds and attaches the top-level application menu bar to the window.
-    void CreateAppMenu();
+    // void CreateAppMenu();
 
     /// @brief Recreates the child edit control (required when toggling word wrap styles in Win32).
     void RecreateEditControl();
+
+    /// @brief Sets the menu bar for the window.
+    void SetMenuBar();
 
     /// @brief Member window message handler for all Win32 messages dispatched to this window.
     /// @param msg Message identifier.
@@ -118,6 +86,7 @@ class MainWindow {
     HWND status_hwnd_{nullptr};
     FileHandler file_handler_;
     OptionsHandler options_handler_;
+    MenuBar menu_bar_;
 };
 
 #endif  // SALT_LIB_MAIN_WINDOW_H_

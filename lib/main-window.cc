@@ -1,7 +1,10 @@
 #include "main-window.h"
+#include "lib/context.h"
+#include "lib/menu-bar.h"
 #include "resource.h"
 
 #include <dwmapi.h>
+#include <shobjidl_core.h>
 #include <uxtheme.h>
 #include <objbase.h>
 
@@ -38,28 +41,35 @@ bool MainWindow::RegisterClass(HINSTANCE instance) {
 
 HACCEL MainWindow::CreateAppAccelerators() {
     ACCEL accels[] = {
-        {FCONTROL | FVIRTKEY, 'N', Command::FileNew},
-        {FCONTROL | FVIRTKEY, 'O', Command::FileOpen},
-        {FCONTROL | FVIRTKEY, 'S', Command::FileSave},
-        {FCONTROL | FSHIFT | FVIRTKEY, 'S', Command::FileSaveAs},
-        {FCONTROL | FVIRTKEY, 'P', Command::FilePrint},
-        {FCONTROL | FVIRTKEY, 'W', Command::ViewWordWrap},
-        {FCONTROL | FVIRTKEY, 'Z', Command::EditUndo},
-        {FCONTROL | FVIRTKEY, 'A', Command::EditSelectAll},
-        {FCONTROL | FVIRTKEY, VK_OEM_PLUS, Command::ViewZoomIn},
-        {FCONTROL | FVIRTKEY, VK_ADD, Command::ViewZoomIn},
-        {FCONTROL | FVIRTKEY, VK_OEM_MINUS, Command::ViewZoomOut},
-        {FCONTROL | FVIRTKEY, VK_SUBTRACT, Command::ViewZoomOut},
-        {FCONTROL | FVIRTKEY, '0', Command::ViewZoomReset},
-        {FCONTROL | FVIRTKEY, VK_NUMPAD0, Command::ViewZoomReset},
+        {FCONTROL | FVIRTKEY, 'N', Context::Command::FileNew},
+        {FCONTROL | FVIRTKEY, 'O', Context::Command::FileOpen},
+        {FCONTROL | FVIRTKEY, 'S', Context::Command::FileSave},
+        {FCONTROL | FSHIFT | FVIRTKEY, 'S', Context::Command::FileSaveAs},
+        {FCONTROL | FVIRTKEY, 'P', Context::Command::FilePrint},
+        {FCONTROL | FVIRTKEY, 'W', Context::Command::ViewWordWrap},
+        {FCONTROL | FVIRTKEY, 'Z', Context::Command::EditUndo},
+        {FCONTROL | FVIRTKEY, 'A', Context::Command::EditSelectAll},
+        {FCONTROL | FVIRTKEY, VK_OEM_PLUS, Context::Command::ViewZoomIn},
+        {FCONTROL | FVIRTKEY, VK_ADD, Context::Command::ViewZoomIn},
+        {FCONTROL | FVIRTKEY, VK_OEM_MINUS, Context::Command::ViewZoomOut},
+        {FCONTROL | FVIRTKEY, VK_SUBTRACT, Context::Command::ViewZoomOut},
+        {FCONTROL | FVIRTKEY, '0', Context::Command::ViewZoomReset},
+        {FCONTROL | FVIRTKEY, VK_NUMPAD0, Context::Command::ViewZoomReset},
     };
     return CreateAcceleratorTableW(accels, sizeof(accels) / sizeof(accels[0]));
 }
 
 HWND MainWindow::Create(HINSTANCE instance, int show_state) {
-    hwnd_ = CreateWindowExW(0, kClassName, L"Untitled - Salt Text Editor", WS_OVERLAPPEDWINDOW,
+    // Create window
+    try {
+        hwnd_ =
+            CreateWindowExW(0, kClassName, L"Untitled - Salt Text Editor", WS_OVERLAPPEDWINDOW,
                             CW_USEDEFAULT, CW_USEDEFAULT, 1000, 680, NULL, NULL, instance, this);
+    } catch (...) {
+        SALT_PANIC("Could not get window handle!");
+    }
 
+    // Render
     if (hwnd_) {
         ShowWindow(hwnd_, show_state);
         UpdateWindow(hwnd_);
@@ -148,60 +158,70 @@ void MainWindow::UpdateStatusBar() {
     SendMessageW(status_hwnd_, SB_SETTEXTW, 4, reinterpret_cast<LPARAM>(state_text));
 }
 
-void MainWindow::CreateAppMenu() {
-    HMENU hMenuBar = CreateMenu();
-
-    // File Menu
-    HMENU hFileMenu = CreatePopupMenu();
-    AppendMenuW(hFileMenu, MF_STRING, Command::FileNew, L"&New\tCtrl+N");
-    AppendMenuW(hFileMenu, MF_STRING, Command::FileOpen, L"&Open...\tCtrl+O");
-    AppendMenuW(hFileMenu, MF_STRING, Command::FileSave, L"&Save\tCtrl+S");
-    AppendMenuW(hFileMenu, MF_STRING, Command::FileSaveAs, L"Save &As...\tCtrl+Shift+S");
-    AppendMenuW(hFileMenu, MF_SEPARATOR, 0, NULL);
-    AppendMenuW(hFileMenu, MF_STRING, Command::FilePrint, L"&Print...\tCtrl+P");
-    AppendMenuW(hFileMenu, MF_SEPARATOR, 0, NULL);
-    AppendMenuW(hFileMenu, MF_STRING, Command::FileExit, L"E&xit\tAlt+F4");
-    AppendMenuW(hMenuBar, MF_POPUP, reinterpret_cast<UINT_PTR>(hFileMenu), L"&File");
-
-    // Edit Menu
-    HMENU hEditMenu = CreatePopupMenu();
-    AppendMenuW(hEditMenu, MF_STRING, Command::EditUndo, L"&Undo\tCtrl+Z");
-    AppendMenuW(hEditMenu, MF_SEPARATOR, 0, NULL);
-    AppendMenuW(hEditMenu, MF_STRING, Command::EditCut, L"Cu&t\tCtrl+X");
-    AppendMenuW(hEditMenu, MF_STRING, Command::EditCopy, L"&Copy\tCtrl+C");
-    AppendMenuW(hEditMenu, MF_STRING, Command::EditPaste, L"&Paste\tCtrl+V");
-    AppendMenuW(hEditMenu, MF_SEPARATOR, 0, NULL);
-    AppendMenuW(hEditMenu, MF_STRING, Command::EditSelectAll, L"Select &All\tCtrl+A");
-    AppendMenuW(hMenuBar, MF_POPUP, reinterpret_cast<UINT_PTR>(hEditMenu), L"&Edit");
-
-    // View Menu
-    HMENU hViewMenu = CreatePopupMenu();
-    UINT wrapFlags = MF_STRING | (options_handler_.IsWordWrap() ? MF_CHECKED : MF_UNCHECKED);
-    AppendMenuW(hViewMenu, wrapFlags, Command::ViewWordWrap, L"&Word Wrap\tCtrl+W");
-    AppendMenuW(hViewMenu, MF_SEPARATOR, 0, NULL);
-    AppendMenuW(hViewMenu, MF_STRING, Command::ViewFont, L"Choose &Font...");
-    AppendMenuW(hViewMenu, MF_STRING, Command::ViewZoomIn, L"Zoom &In\tCtrl++");
-    AppendMenuW(hViewMenu, MF_STRING, Command::ViewZoomOut, L"Zoom &Out\tCtrl+-");
-    AppendMenuW(hViewMenu, MF_STRING, Command::ViewZoomReset, L"&Reset Zoom\tCtrl+0");
-    AppendMenuW(hViewMenu, MF_SEPARATOR, 0, NULL);
-    AppendMenuW(
-        hViewMenu, MF_STRING, Command::ViewThemeToggle,
-        options_handler_.IsDarkMode() ? L"Switch to &Light Theme" : L"Switch to &Dark Theme");
-    UINT statusFlags =
-        MF_STRING | (options_handler_.IsStatusBarVisible() ? MF_CHECKED : MF_UNCHECKED);
-    AppendMenuW(hViewMenu, statusFlags, Command::ViewStatusBar, L"&Status Bar");
-    AppendMenuW(hMenuBar, MF_POPUP, reinterpret_cast<UINT_PTR>(hViewMenu), L"&View");
-
-    // Help Menu
-    HMENU hHelpMenu = CreatePopupMenu();
-    AppendMenuW(hHelpMenu, MF_STRING, Command::HelpAbout, L"&About Salt...");
-    AppendMenuW(hMenuBar, MF_POPUP, reinterpret_cast<UINT_PTR>(hHelpMenu), L"&Help");
-
+void MainWindow::SetMenuBar() {
+    menu_bar_.Create(options_handler_);
+    HMENU hMenuBar = menu_bar_.GetMenuHandle();
     bool x = SetMenu(hwnd_, hMenuBar);
     if (!x) {
-        MessageBoxW(hwnd_, L"Failed to set menu", L"Error", MB_OK | MB_ICONERROR);
+        SALT_PANIC("Failed to set menu!");
     }
+    DrawMenuBar(hwnd_);
 }
+// void MainWindow::CreateAppMenu() {
+//     HMENU hMenuBar = CreateMenu();
+
+//     // File Menu
+//     HMENU hFileMenu = CreatePopupMenu();
+//     AppendMenuW(hFileMenu, MF_STRING, Command::FileNew, L"&New\tCtrl+N");
+//     AppendMenuW(hFileMenu, MF_STRING, Command::FileOpen, L"&Open...\tCtrl+O");
+//     AppendMenuW(hFileMenu, MF_STRING, Command::FileSave, L"&Save\tCtrl+S");
+//     AppendMenuW(hFileMenu, MF_STRING, Command::FileSaveAs, L"Save &As...\tCtrl+Shift+S");
+//     AppendMenuW(hFileMenu, MF_SEPARATOR, 0, NULL);
+//     AppendMenuW(hFileMenu, MF_STRING, Command::FilePrint, L"&Print...\tCtrl+P");
+//     AppendMenuW(hFileMenu, MF_SEPARATOR, 0, NULL);
+//     AppendMenuW(hFileMenu, MF_STRING, Command::FileExit, L"E&xit\tAlt+F4");
+//     AppendMenuW(hMenuBar, MF_POPUP, reinterpret_cast<UINT_PTR>(hFileMenu), L"&File");
+
+//     // Edit Menu
+//     HMENU hEditMenu = CreatePopupMenu();
+//     AppendMenuW(hEditMenu, MF_STRING, Command::EditUndo, L"&Undo\tCtrl+Z");
+//     AppendMenuW(hEditMenu, MF_SEPARATOR, 0, NULL);
+//     AppendMenuW(hEditMenu, MF_STRING, Command::EditCut, L"Cu&t\tCtrl+X");
+//     AppendMenuW(hEditMenu, MF_STRING, Command::EditCopy, L"&Copy\tCtrl+C");
+//     AppendMenuW(hEditMenu, MF_STRING, Command::EditPaste, L"&Paste\tCtrl+V");
+//     AppendMenuW(hEditMenu, MF_SEPARATOR, 0, NULL);
+//     AppendMenuW(hEditMenu, MF_STRING, Command::EditSelectAll, L"Select &All\tCtrl+A");
+//     AppendMenuW(hMenuBar, MF_POPUP, reinterpret_cast<UINT_PTR>(hEditMenu), L"&Edit");
+
+//     // View Menu
+//     HMENU hViewMenu = CreatePopupMenu();
+//     UINT wrapFlags = MF_STRING | (options_handler_.IsWordWrap() ? MF_CHECKED : MF_UNCHECKED);
+//     AppendMenuW(hViewMenu, wrapFlags, Command::ViewWordWrap, L"&Word Wrap\tCtrl+W");
+//     AppendMenuW(hViewMenu, MF_SEPARATOR, 0, NULL);
+//     AppendMenuW(hViewMenu, MF_STRING, Command::ViewFont, L"Choose &Font...");
+//     AppendMenuW(hViewMenu, MF_STRING, Command::ViewZoomIn, L"Zoom &In\tCtrl++");
+//     AppendMenuW(hViewMenu, MF_STRING, Command::ViewZoomOut, L"Zoom &Out\tCtrl+-");
+//     AppendMenuW(hViewMenu, MF_STRING, Command::ViewZoomReset, L"&Reset Zoom\tCtrl+0");
+//     AppendMenuW(hViewMenu, MF_SEPARATOR, 0, NULL);
+//     AppendMenuW(
+//         hViewMenu, MF_STRING, Command::ViewThemeToggle,
+//         options_handler_.IsDarkMode() ? L"Switch to &Light Theme" : L"Switch to &Dark Theme");
+//     UINT statusFlags =
+//         MF_STRING | (options_handler_.IsStatusBarVisible() ? MF_CHECKED : MF_UNCHECKED);
+//     AppendMenuW(hViewMenu, statusFlags, Command::ViewStatusBar, L"&Status Bar");
+//     AppendMenuW(hMenuBar, MF_POPUP, reinterpret_cast<UINT_PTR>(hViewMenu), L"&View");
+
+//     // Help Menu
+//     HMENU hHelpMenu = CreatePopupMenu();
+//     AppendMenuW(hHelpMenu, MF_STRING, Command::HelpAbout, L"&About Salt...");
+//     AppendMenuW(hMenuBar, MF_POPUP, reinterpret_cast<UINT_PTR>(hHelpMenu), L"&Help");
+
+//     bool x = SetMenu(hwnd_, hMenuBar);
+//     if (!x) {
+//         MessageBoxW(hwnd_, L"Failed to set menu", L"Error", MB_OK | MB_ICONERROR);
+//     }
+//
+// }
 
 void MainWindow::RecreateEditControl() {
     int len = edit_hwnd_ ? GetWindowTextLengthW(edit_hwnd_) : 0;
@@ -225,7 +245,7 @@ void MainWindow::RecreateEditControl() {
 
     edit_hwnd_ = CreateWindowExW(
         0, L"EDIT", buffer.c_str(), style, 0, 0, rcClient.right, rcClient.bottom, hwnd_,
-        reinterpret_cast<HMENU>(ControlId::MainEdit), GetModuleHandle(NULL), NULL);
+        reinterpret_cast<HMENU>(Context::ControlId::MainEdit), GetModuleHandle(NULL), NULL);
 
     // Padding margins for modern comfortable reading
     SendMessageW(edit_hwnd_, EM_SETMARGINS, EC_LEFTMARGIN | EC_RIGHTMARGIN, MAKELPARAM(16, 16));
@@ -251,9 +271,10 @@ LRESULT MainWindow::HandleMessage(UINT msg, WPARAM param_w, LPARAM param_l) {
             if (options_handler_.IsStatusBarVisible()) {
                 status_style |= WS_VISIBLE;
             }
-            status_hwnd_ = CreateWindowExW(0, STATUSCLASSNAMEW, NULL, status_style, 0, 0, 0, 0,
-                                           hwnd_, reinterpret_cast<HMENU>(ControlId::MainStatus),
-                                           GetModuleHandle(NULL), NULL);
+            status_hwnd_ =
+                CreateWindowExW(0, STATUSCLASSNAMEW, NULL, status_style, 0, 0, 0, 0, hwnd_,
+                                reinterpret_cast<HMENU>(Context::ControlId::MainStatus),
+                                GetModuleHandle(NULL), NULL);
 
             int statusParts[] = {160, 310, 440, 540, -1};
             SendMessageW(status_hwnd_, SB_SETPARTS, 5, reinterpret_cast<LPARAM>(statusParts));
@@ -262,7 +283,9 @@ LRESULT MainWindow::HandleMessage(UINT msg, WPARAM param_w, LPARAM param_l) {
             RecreateEditControl();
             options_handler_.Init(hwnd_, edit_hwnd_);
 
-            CreateAppMenu();
+            // CreateAppMenu();
+            MainWindow::SetMenuBar();
+
             UpdateTitle();
             UpdateStatusBar();
 
@@ -310,68 +333,69 @@ LRESULT MainWindow::HandleMessage(UINT msg, WPARAM param_w, LPARAM param_l) {
                 return 0;
             }
 
-            Command cmd = static_cast<Command>(LOWORD(param_w));
+            Context::Command cmd = static_cast<Context::Command>(LOWORD(param_w));
             switch (cmd) {
-                case Command::FileNew:
+                case Context::Command::FileNew:
                     if (file_handler_.New(hwnd_)) {
                         UpdateTitle();
                         UpdateStatusBar();
                     }
                     break;
 
-                case Command::FileOpen:
+                case Context::Command::FileOpen:
                     if (file_handler_.Open(hwnd_)) {
                         UpdateTitle();
                         UpdateStatusBar();
                     }
                     break;
 
-                case Command::FileSave:
+                case Context::Command::FileSave:
                     if (file_handler_.Save(hwnd_)) {
                         UpdateTitle();
                         UpdateStatusBar();
                     }
                     break;
 
-                case Command::FileSaveAs:
+                case Context::Command::FileSaveAs:
                     if (file_handler_.SaveAs(hwnd_)) {
                         UpdateTitle();
                         UpdateStatusBar();
                     }
                     break;
 
-                case Command::FilePrint:
+                case Context::Command::FilePrint:
                     file_handler_.Print(hwnd_);
                     break;
 
-                case Command::FileExit:
+                case Context::Command::FileExit:
                     SendMessageW(hwnd_, WM_CLOSE, 0, 0);
                     break;
 
-                case Command::EditUndo:
+                case Context::Command::EditUndo:
                     SendMessageW(edit_hwnd_, EM_UNDO, 0, 0);
                     break;
 
-                case Command::EditCut:
+                case Context::Command::EditCut:
                     SendMessageW(edit_hwnd_, WM_CUT, 0, 0);
                     break;
 
-                case Command::EditCopy:
+                case Context::Command::EditCopy:
                     SendMessageW(edit_hwnd_, WM_COPY, 0, 0);
                     break;
 
-                case Command::EditPaste:
+                case Context::Command::EditPaste:
                     SendMessageW(edit_hwnd_, WM_PASTE, 0, 0);
                     break;
 
-                case Command::EditSelectAll:
+                case Context::Command::EditSelectAll:
                     SendMessageW(edit_hwnd_, EM_SETSEL, 0, -1);
                     break;
 
-                case Command::ViewWordWrap: {
+                case Context::Command::ViewWordWrap: {
                     options_handler_.ToggleWordWrap();
                     RecreateEditControl();
-                    CreateAppMenu();
+                    // CreateAppMenu();
+                    MainWindow::SetMenuBar();
                     RECT rc;
                     GetClientRect(hwnd_, &rc);
                     SendMessageW(hwnd_, WM_SIZE, 0, MAKELPARAM(rc.right, rc.bottom));
@@ -379,39 +403,41 @@ LRESULT MainWindow::HandleMessage(UINT msg, WPARAM param_w, LPARAM param_l) {
                     break;
                 }
 
-                case Command::ViewFont:
+                case Context::Command::ViewFont:
                     options_handler_.ChooseFontDialog();
                     break;
 
-                case Command::ViewZoomIn:
+                case Context::Command::ViewZoomIn:
                     options_handler_.ZoomIn();
                     break;
 
-                case Command::ViewZoomOut:
+                case Context::Command::ViewZoomOut:
                     options_handler_.ZoomOut();
                     break;
 
-                case Command::ViewZoomReset:
+                case Context::Command::ViewZoomReset:
                     options_handler_.ZoomReset();
                     break;
 
-                case Command::ViewThemeToggle:
+                case Context::Command::ViewThemeToggle:
                     options_handler_.ToggleTheme();
                     EnableDarkMode(options_handler_.IsDarkMode());
-                    CreateAppMenu();
+                    // CreateAppMenu();
+                    MainWindow::SetMenuBar();
                     break;
 
-                case Command::ViewStatusBar: {
+                case Context::Command::ViewStatusBar: {
                     bool visible = options_handler_.ToggleStatusBar();
                     ShowWindow(status_hwnd_, visible ? SW_SHOW : SW_HIDE);
-                    CreateAppMenu();
+                    // CreateAppMenu();
+                    MainWindow::SetMenuBar();
                     RECT rc;
                     GetClientRect(hwnd_, &rc);
                     SendMessageW(hwnd_, WM_SIZE, 0, MAKELPARAM(rc.right, rc.bottom));
                     break;
                 }
 
-                case Command::HelpAbout:
+                case Context::Command::HelpAbout:
                     MessageBoxW(hwnd_,
                                 L"Salt Text Editor v0.1.0\n\n"
                                 L"A text editor for Windows.\n"

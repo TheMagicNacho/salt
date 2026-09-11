@@ -16,6 +16,8 @@ cc_library(
         "main-window.cc",
         "file-handler.cc",
         "options-handler.cc",
+        "text-utils.cc",
+        "menu-bar.cc",
     ],
     hdrs=[
         "errors.h",
@@ -23,8 +25,21 @@ cc_library(
         "file-handler.h",
         "options-handler.h",
         "resource.h",
+        "text-utils.h",
+        "menu-bar.h",
+        "context.h",
     ],
-    visibility=["//main:__pkg__"],
+    visibility=["//visibility:public"],
+    linkopts = [
+        "user32.lib",
+        "gdi32.lib",
+        "comctl32.lib",
+        "comdlg32.lib",
+        "dwmapi.lib",
+        "uxtheme.lib",
+        "ole32.lib",
+        "shell32.lib",
+    ],
 )
 
 doxygen(
@@ -36,6 +51,11 @@ doxygen(
         "options-handler.cc",
         "main-window.h",
         "main-window.cc",
+        "text-utils.h",
+        "text-utils.cc",
+        "menu-bar.h",
+        "menu-bar.cc",
+        "context.h",
     ],
     project_name = "Salt Text Editor",
     project_brief = "Pure C++ Win32 Text Editor",
