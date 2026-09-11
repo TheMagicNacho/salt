@@ -1,7 +1,13 @@
+# build artifacts
 bazel*
 MODULE.bazel.lock
 compile_commands.json
-asdf*
-.zed
 **/bin/
 **/obj/
+salt.msi
+
+# I like to test text files by labeling them as 'asdf'
+asdf*
+
+# dev artifacts
+.zed
