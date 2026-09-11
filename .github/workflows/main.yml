@@ -86,14 +86,8 @@ jobs:
           if (-not $tag) {
             $headTags = git tag --points-at HEAD
             if ($headTags) {
-              $matching = @()
-              foreach ($t in ($headTags -split "`r?`n")) {
-                $trimmed = $t.Trim()
-                if ($trimmed -like "r*.*.*") {
-                  $matching += $trimmed
-                }
-              }
-              if ($matching.Count -gt 0) {
+              $matching = @($headTags) | ForEach-Object { "$_".Trim() } | Where-Object { $_ -like "r*.*.*" }
+              if ($matching) {
                 $std = $matching | Where-Object { $_ -match '^r\d' } | Select-Object -First 1
                 $tag = if ($std) { $std } else { $matching[0] }
                 Write-Host "Detected release tag pointing at HEAD: $tag"
@@ -115,14 +109,8 @@ jobs:
             if ($isMerge) {
               $mergeTags = git tag --points-at HEAD^2
               if ($mergeTags) {
-                $matching = @()
-                foreach ($t in ($mergeTags -split "`r?`n")) {
-                  $trimmed = $t.Trim()
-                  if ($trimmed -like "r*.*.*") {
-                    $matching += $trimmed
-                  }
-                }
-                if ($matching.Count -gt 0) {
+                $matching = @($mergeTags) | ForEach-Object { "$_".Trim() } | Where-Object { $_ -like "r*.*.*" }
+                if ($matching) {
                   $std = $matching | Where-Object { $_ -match '^r\d' } | Select-Object -First 1
                   $tag = if ($std) { $std } else { $matching[0] }
                   Write-Host "Detected release tag pointing at HEAD^2: $tag"
@@ -133,12 +121,16 @@ jobs:
 
           # 4. Check commit message and merge commit references
           if (-not $tag) {
-            $commitMsg = git log -1 --pretty=%B
-            if ($commitMsg -match $pattern) {
-              $candidate = $Matches[1].TrimEnd('.', ',', ';', ':')
-              if ($candidate -like "r*.*.*") {
-                $tag = $candidate
-                Write-Host "Detected release tag from commit message: $tag"
+            $rawMsg = git log -1 --pretty=%B
+            $commitMsg = if ($rawMsg -is [array]) { $rawMsg -join "`n" } else { [string]$rawMsg }
+            if ($commitMsg) {
+              $match = [regex]::Match($commitMsg, $pattern)
+              if ($match.Success -and $match.Groups.Count -gt 1) {
+                $candidate = $match.Groups[1].Value.TrimEnd('.', ',', ';', ':')
+                if ($candidate -like "r*.*.*") {
+                  $tag = $candidate
+                  Write-Host "Detected release tag from commit message: $tag"
+                }
               }
             }
           }
