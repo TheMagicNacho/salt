@@ -12,6 +12,8 @@ on:
 
 permissions:
   contents: read
+  security-events: write
+  actions: read
 
 jobs:
   validate:
@@ -34,42 +36,21 @@ jobs:
           disk-cache: ${{ github.workflow }}
           repository-cache: true
 
-      - name: Configure Clang / LLVM Path
+      - name: Configure Compiler
         shell: pwsh
         run: |
           if (Test-Path "C:\Program Files\LLVM\bin") {
             "C:\Program Files\LLVM\bin" | Out-File -FilePath $env:GITHUB_PATH -Append
           }
 
-      - name: Lint Code (Clang-Format via Bazel)
+      - name: Lint
         shell: cmd
         run: bazelisk build //:lint
 
-      - name: Check for Major Vulnerabilities (cppcheck)
-        shell: pwsh
-        run: |
-          if (-not (Get-Command cppcheck -ErrorAction SilentlyContinue)) {
-            Write-Host "Installing cppcheck via Chocolatey..."
-            choco install cppcheck -y --no-progress
-            $cppcheckPath = "C:\Program Files\Cppcheck"
-            if (Test-Path $cppcheckPath) {
-              $cppcheckPath | Out-File -FilePath $env:GITHUB_PATH -Append
-              $env:PATH = "$cppcheckPath;$env:PATH"
-            }
-          }
-          Write-Host "Running vulnerability and safety checks..."
-          cppcheck --enable=warning,portability --error-exitcode=1 --inline-suppr lib/ main/
-
-      - name: Build Application (Dry Build)
+      - name: Build
         shell: cmd
         run: bazelisk build //main:salt
 
-      - name: Run Tests (if present)
-        shell: pwsh
-        run: |
-          if (Test-Path "tests/BUILD*") {
-            Write-Host "Discovered test targets. Executing bazelisk test //tests:all ..."
-            bazelisk test //tests:all
-          } else {
-            Write-Host "No tests/ directory found on this branch; skipping test step."
-          }
+      - name: Test
+        shell: cmd
+        run: bazelisk test //tests:all

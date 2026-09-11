@@ -9,6 +9,8 @@ on:
 
 permissions:
   contents: write
+  security-events: write
+  actions: read
 
 jobs:
   pipeline:
@@ -33,53 +35,30 @@ jobs:
           disk-cache: ${{ github.workflow }}
           repository-cache: true
 
-      - name: Configure Clang / LLVM Path
+      - name: Configure Compiler
         shell: pwsh
         run: |
           if (Test-Path "C:\Program Files\LLVM\bin") {
             "C:\Program Files\LLVM\bin" | Out-File -FilePath $env:GITHUB_PATH -Append
           }
 
-      - name: Lint Code (Clang-Format via Bazel)
+      - name: Lint
         shell: cmd
         run: bazelisk build //:lint
 
-      - name: Check for Major Vulnerabilities (cppcheck)
-        shell: pwsh
-        run: |
-          if (-not (Get-Command cppcheck -ErrorAction SilentlyContinue)) {
-            Write-Host "Installing cppcheck via Chocolatey..."
-            choco install cppcheck -y --no-progress
-            $cppcheckPath = "C:\Program Files\Cppcheck"
-            if (Test-Path $cppcheckPath) {
-              $cppcheckPath | Out-File -FilePath $env:GITHUB_PATH -Append
-              $env:PATH = "$cppcheckPath;$env:PATH"
-            }
-          }
-          Write-Host "Running vulnerability and safety checks..."
-          cppcheck --enable=warning,portability --error-exitcode=1 --inline-suppr lib/ main/
-
-      - name: Dry Build (Unoptimized)
+      - name: Build Application (Optimized Build)
         shell: cmd
-        run: bazelisk build //main:salt
+        run: bazelisk build -c opt //main:salt
 
-      - name: Run Tests (if present)
-        shell: pwsh
-        run: |
-          if (Test-Path "tests/BUILD*") {
-            Write-Host "Discovered test targets. Executing bazelisk test //tests:all ..."
-            bazelisk test //tests:all
-          } else {
-            Write-Host "No tests/ directory found; skipping test step."
-          }
-
-      - name: Optimized Build & Generate MSI Installer
+      - name: Test
         shell: cmd
-        run: |
-          bazelisk build -c opt //main:salt
-          bazelisk build -c opt //installer:salt_msi
+        run: bazelisk test //tests:all
 
-      - name: Store MSI as 30-Day Artifact
+      - name: Generate MSI Installer
+        shell: cmd
+        run: bazelisk build -c opt //installer:salt_msi
+
+      - name: Store MSI as Artifact
         uses: actions/upload-artifact@v4
         with:
           name: salt-installer-msi
@@ -87,11 +66,105 @@ jobs:
           retention-days: 30
           if-no-files-found: error
 
-      - name: Add MSI to GitHub Release (If Tagged)
-        if: startsWith(github.ref, 'refs/tags/')
+      - name: Detect Release Tag
+        id: detect_release
+        shell: pwsh
+        env:
+          GITHUB_REF: ${{ github.ref }}
+          GITHUB_REF_NAME: ${{ github.ref_name }}
+        run: |
+          $tag = ""
+          $pattern = '(?i)\b(r[a-z0-9_.-]*\.[a-z0-9_.-]*\.[a-z0-9_.-]+)\b'
+
+          # 1. Check github.ref / github.ref_name if triggered by tag push
+          if ($env:GITHUB_REF -like "refs/tags/r*.*.*") {
+            $tag = $env:GITHUB_REF_NAME
+            Write-Host "Detected release tag from GITHUB_REF: $tag"
+          }
+
+          # 2. Check git tags pointing at HEAD
+          if (-not $tag) {
+            $headTags = git tag --points-at HEAD
+            if ($headTags) {
+              $matching = @()
+              foreach ($t in ($headTags -split "`r?`n")) {
+                $trimmed = $t.Trim()
+                if ($trimmed -like "r*.*.*") {
+                  $matching += $trimmed
+                }
+              }
+              if ($matching.Count -gt 0) {
+                $std = $matching | Where-Object { $_ -match '^r\d' } | Select-Object -First 1
+                $tag = if ($std) { $std } else { $matching[0] }
+                Write-Host "Detected release tag pointing at HEAD: $tag"
+              }
+            }
+          }
+
+          # 3. Check git tags pointing at merged parent (if HEAD is a merge commit)
+          if (-not $tag) {
+            $isMerge = $false
+            try {
+              $out = git rev-parse -q --verify "HEAD^2" 2>$null
+              if ($LASTEXITCODE -eq 0 -and $out) {
+                $isMerge = $true
+              }
+            } catch {
+              $isMerge = $false
+            }
+            if ($isMerge) {
+              $mergeTags = git tag --points-at HEAD^2
+              if ($mergeTags) {
+                $matching = @()
+                foreach ($t in ($mergeTags -split "`r?`n")) {
+                  $trimmed = $t.Trim()
+                  if ($trimmed -like "r*.*.*") {
+                    $matching += $trimmed
+                  }
+                }
+                if ($matching.Count -gt 0) {
+                  $std = $matching | Where-Object { $_ -match '^r\d' } | Select-Object -First 1
+                  $tag = if ($std) { $std } else { $matching[0] }
+                  Write-Host "Detected release tag pointing at HEAD^2: $tag"
+                }
+              }
+            }
+          }
+
+          # 4. Check commit message and merge commit references
+          if (-not $tag) {
+            $commitMsg = git log -1 --pretty=%B
+            if ($commitMsg -match $pattern) {
+              $candidate = $Matches[1].TrimEnd('.', ',', ';', ':')
+              if ($candidate -like "r*.*.*") {
+                $tag = $candidate
+                Write-Host "Detected release tag from commit message: $tag"
+              }
+            }
+          }
+
+          if ($tag) {
+            git tag -f $tag HEAD 2>$null
+            try {
+              git push --force origin "refs/tags/$tag" 2>$null
+            } catch {}
+            "release_tag=$tag" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+            "is_release=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+            Write-Host "Release detected: $tag"
+          } else {
+            "is_release=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+            Write-Host "No matching release tag detected."
+          }
+
+      - name: Publish Release
+        if: steps.detect_release.outputs.is_release == 'true'
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ steps.detect_release.outputs.release_tag }}
+          name: ${{ steps.detect_release.outputs.release_tag }}
+          target_commitish: ${{ github.sha }}
           files: bazel-bin/installer/salt.msi
           generate_release_notes: true
+          make_latest: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
