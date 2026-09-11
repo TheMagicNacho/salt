@@ -47,11 +47,9 @@ void OptionsHandler::ApplyFont() {
 
     int height = -MulDiv(font_size_pt_, dpi, 72);
 
-    HFONT new_font = CreateFontW(
-        height, 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE,
-        DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS,
-        CLEARTYPE_QUALITY, FIXED_PITCH | FF_MODERN,
-        font_name_.c_str());
+    HFONT new_font = CreateFontW(height, 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE, DEFAULT_CHARSET,
+                                 OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY,
+                                 FIXED_PITCH | FF_MODERN, font_name_.c_str());
 
     if (new_font) {
         SendMessageW(edit_hwnd_, WM_SETFONT, reinterpret_cast<WPARAM>(new_font), TRUE);
@@ -107,18 +105,14 @@ void OptionsHandler::ZoomReset() {
     ApplyFont();
 }
 
-int OptionsHandler::GetFontSize() const {
-    return font_size_pt_;
-}
+int OptionsHandler::GetFontSize() const { return font_size_pt_; }
 
 bool OptionsHandler::ToggleWordWrap() {
     word_wrap_ = !word_wrap_;
     return word_wrap_;
 }
 
-bool OptionsHandler::IsWordWrap() const {
-    return word_wrap_;
-}
+bool OptionsHandler::IsWordWrap() const { return word_wrap_; }
 
 void OptionsHandler::ToggleTheme() {
     theme_mode_ = (theme_mode_ == ThemeMode::Dark) ? ThemeMode::Light : ThemeMode::Dark;
@@ -132,26 +126,18 @@ void OptionsHandler::ToggleTheme() {
     }
 }
 
-ThemeMode OptionsHandler::GetThemeMode() const {
-    return theme_mode_;
-}
+ThemeMode OptionsHandler::GetThemeMode() const { return theme_mode_; }
 
-bool OptionsHandler::IsDarkMode() const {
-    return theme_mode_ == ThemeMode::Dark;
-}
+bool OptionsHandler::IsDarkMode() const { return theme_mode_ == ThemeMode::Dark; }
 
 bool OptionsHandler::ToggleStatusBar() {
     show_status_bar_ = !show_status_bar_;
     return show_status_bar_;
 }
 
-bool OptionsHandler::IsStatusBarVisible() const {
-    return show_status_bar_;
-}
+bool OptionsHandler::IsStatusBarVisible() const { return show_status_bar_; }
 
-HFONT OptionsHandler::GetCurrentFont() const {
-    return current_font_;
-}
+HFONT OptionsHandler::GetCurrentFont() const { return current_font_; }
 
 COLORREF OptionsHandler::GetBackgroundColor() const {
     return (theme_mode_ == ThemeMode::Dark) ? RGB(30, 30, 30) : RGB(255, 255, 255);

@@ -44,14 +44,16 @@ if not defined CF_CMD (
 :found_cf
 if "%MODE%"=="fix" (
     powershell -NoProfile -ExecutionPolicy Bypass -Command ^
-        "$files = Get-ChildItem -Path . -Recurse -Include *.cc, *.h | Where-Object { $_.FullName -notmatch '[\\\\/]bazel-' -and $_.FullName -notmatch '[\\\\/]\.git' };" ^
+        "$dirs = @('lib', 'main') | Where-Object { Test-Path $_ };" ^
+        "$files = if ($dirs) { Get-ChildItem -Path $dirs -Recurse -Include *.cc, *.h | Where-Object { $_.FullName -notmatch '[\\\\/]bazel-' -and $_.FullName -notmatch '[\\\\/]\.git' } } else { @() };" ^
         "if ($files.Count -eq 0) { Write-Host 'No files found to format.'; exit 0 };" ^
         "& '%CF_CMD%' -i $files.FullName;" ^
         "Write-Host ('Formatted ' + $files.Count + ' files.')"
-    exit /b %ERRORLEVEL%
+    exit /b !ERRORLEVEL!
 ) else (
     powershell -NoProfile -ExecutionPolicy Bypass -Command ^
-        "$files = Get-ChildItem -Path . -Recurse -Include *.cc, *.h | Where-Object { $_.FullName -notmatch '[\\\\/]bazel-' -and $_.FullName -notmatch '[\\\\/]\.git' };" ^
+        "$dirs = @('lib', 'main') | Where-Object { Test-Path $_ };" ^
+        "$files = if ($dirs) { Get-ChildItem -Path $dirs -Recurse -Include *.cc, *.h | Where-Object { $_.FullName -notmatch '[\\\\/]bazel-' -and $_.FullName -notmatch '[\\\\/]\.git' } } else { @() };" ^
         "if ($files.Count -eq 0) { exit 0 };" ^
         "$failed = 0;" ^
         "foreach ($f in $files) {" ^
@@ -62,10 +64,10 @@ if "%MODE%"=="fix" (
         "    }" ^
         "};" ^
         "if ($failed -ne 0) {" ^
-        "    Write-Error 'Clang-format check failed! Run `bazelisk run //:format` to auto-format.';" ^
+        "    [Console]::Error.WriteLine('Clang-format check failed! Run bazelisk run //:format to auto-format.');" ^
         "    exit 1;" ^
         "} else {" ^
         "    Write-Host ('Clang-format check passed for ' + $files.Count + ' files.');" ^
         "}"
-    exit /b %ERRORLEVEL%
+    exit /b !ERRORLEVEL!
 )

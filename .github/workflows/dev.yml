@@ -64,12 +64,6 @@ jobs:
         shell: cmd
         run: bazelisk build //main:salt
 
-      - name: Run Tests (if present)
+      - name: Run Tests
         shell: pwsh
-        run: |
-          if (Test-Path "tests/BUILD*") {
-            Write-Host "Discovered test targets. Executing bazelisk test //tests:all ..."
-            bazelisk test //tests:all
-          } else {
-            Write-Host "No tests/ directory found on this branch; skipping test step."
-          }
+        run: bazelisk test //tests:all

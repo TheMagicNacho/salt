@@ -10,8 +10,8 @@
 /// @enum ThemeMode
 /// @brief Visual theme mode for the application.
 enum class ThemeMode {
-    Dark,   ///< Dark theme mode.
-    Light   ///< Light theme mode.
+    Dark,  ///< Dark theme mode.
+    Light  ///< Light theme mode.
 };
 
 /// @class OptionsHandler
