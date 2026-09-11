@@ -12,6 +12,8 @@ on:
 
 permissions:
   contents: read
+  security-events: write
+  actions: read
 
 jobs:
   validate:
@@ -45,24 +47,17 @@ jobs:
         shell: cmd
         run: bazelisk build //:lint
 
-      - name: Check for Major Vulnerabilities (cppcheck)
-        shell: pwsh
-        run: |
-          if (-not (Get-Command cppcheck -ErrorAction SilentlyContinue)) {
-            Write-Host "Installing cppcheck via Chocolatey..."
-            choco install cppcheck -y --no-progress
-            $cppcheckPath = "C:\Program Files\Cppcheck"
-            if (Test-Path $cppcheckPath) {
-              $cppcheckPath | Out-File -FilePath $env:GITHUB_PATH -Append
-              $env:PATH = "$cppcheckPath;$env:PATH"
-            }
-          }
-          Write-Host "Running vulnerability and safety checks..."
-          cppcheck --enable=warning,portability --error-exitcode=1 --inline-suppr lib/ main/
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: 'c-cpp'
 
       - name: Build Application (Dry Build)
         shell: cmd
         run: bazelisk build //main:salt
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
 
       - name: Run Tests
         shell: pwsh
