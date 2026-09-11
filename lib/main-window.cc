@@ -4,9 +4,9 @@
 #include "resource.h"
 
 #include <dwmapi.h>
+#include <objbase.h>
 #include <shobjidl_core.h>
 #include <uxtheme.h>
-#include <objbase.h>
 
 #ifndef DWMWA_USE_IMMERSIVE_DARK_MODE
 #define DWMWA_USE_IMMERSIVE_DARK_MODE 20
@@ -20,23 +20,23 @@
 // UXTheme dark mode undocumented helper functions
 typedef enum PreferredAppMode { Default, AllowDark, ForceDark, ForceLight, Max } PreferredAppMode;
 
-typedef PreferredAppMode(WINAPI* fnSetPreferredAppMode)(PreferredAppMode appMode);
-typedef BOOL(WINAPI* fnAllowDarkModeForWindow)(HWND hWnd, BOOL allow);
+typedef PreferredAppMode(WINAPI* fnSetPreferredAppMode)(PreferredAppMode app_mode);
+typedef BOOL(WINAPI* fnAllowDarkModeForWindow)(HWND hwnd, BOOL allow);
 
 bool MainWindow::RegisterClass(HINSTANCE instance) {
-    WNDCLASSEXW wc{};
-    wc.cbSize = sizeof(WNDCLASSEXW);
-    wc.style = CS_HREDRAW | CS_VREDRAW;
-    wc.lpfnWndProc = MainWindow::StaticWndProc;
-    wc.hInstance = instance;
-    wc.hIcon = LoadIconW(instance, MAKEINTRESOURCEW(IDI_APP_ICON));
-    wc.hIconSm = (HICON)LoadImageW(instance, MAKEINTRESOURCEW(IDI_APP_ICON), IMAGE_ICON,
-                                   GetSystemMetrics(SM_CXSMICON), GetSystemMetrics(SM_CYSMICON),
-                                   LR_DEFAULTCOLOR);
-    wc.hCursor = LoadCursorW(NULL, IDC_ARROW);
-    wc.hbrBackground = CreateSolidBrush(RGB(30, 30, 30));
-    wc.lpszClassName = kClassName;
-    return RegisterClassExW(&wc) != 0;
+    WNDCLASSEXW wnd_class{};
+    wnd_class.cbSize = sizeof(WNDCLASSEXW);
+    wnd_class.style = CS_HREDRAW | CS_VREDRAW;
+    wnd_class.lpfnWndProc = MainWindow::StaticWndProc;
+    wnd_class.hInstance = instance;
+    wnd_class.hIcon = LoadIconW(instance, MAKEINTRESOURCEW(IDI_APP_ICON));
+    wnd_class.hIconSm = static_cast<HICON>(
+        LoadImageW(instance, MAKEINTRESOURCEW(IDI_APP_ICON), IMAGE_ICON,
+                   GetSystemMetrics(SM_CXSMICON), GetSystemMetrics(SM_CYSMICON), LR_DEFAULTCOLOR));
+    wnd_class.hCursor = LoadCursorW(NULL, IDC_ARROW);
+    wnd_class.hbrBackground = CreateSolidBrush(RGB(30, 30, 30));
+    wnd_class.lpszClassName = kClassName;
+    return RegisterClassExW(&wnd_class) != 0;
 }
 
 HACCEL MainWindow::CreateAppAccelerators() {
@@ -81,8 +81,8 @@ LRESULT CALLBACK MainWindow::StaticWndProc(HWND hwnd, UINT msg, WPARAM param_w, 
     MainWindow* self = nullptr;
 
     if (msg == WM_NCCREATE) {
-        auto* cs = reinterpret_cast<CREATESTRUCTW*>(param_l);
-        self = reinterpret_cast<MainWindow*>(cs->lpCreateParams);
+        auto* create_struct = reinterpret_cast<CREATESTRUCTW*>(param_l);
+        self = reinterpret_cast<MainWindow*>(create_struct->lpCreateParams);
         SetWindowLongPtrW(hwnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(self));
         if (self) {
             self->hwnd_ = hwnd;
@@ -106,18 +106,18 @@ void MainWindow::EnableDarkMode(bool enable) {
     DwmSetWindowAttribute(hwnd_, DWMWA_SYSTEMBACKDROP_TYPE, &backdrop, sizeof(backdrop));
 
     // Load uxtheme for dark context menus if supported
-    HMODULE hUxTheme = GetModuleHandleW(L"uxtheme.dll");
-    if (hUxTheme) {
-        fnSetPreferredAppMode SetPreferredAppMode = reinterpret_cast<fnSetPreferredAppMode>(
-            GetProcAddress(hUxTheme, MAKEINTRESOURCEA(135)));
-        if (SetPreferredAppMode) {
-            SetPreferredAppMode(enable ? AllowDark : Default);
+    HMODULE uxtheme_module = GetModuleHandleW(L"uxtheme.dll");
+    if (uxtheme_module) {
+        fnSetPreferredAppMode set_preferred_app_mode = reinterpret_cast<fnSetPreferredAppMode>(
+            GetProcAddress(uxtheme_module, MAKEINTRESOURCEA(135)));
+        if (set_preferred_app_mode) {
+            set_preferred_app_mode(enable ? AllowDark : Default);
         }
-        fnAllowDarkModeForWindow AllowDarkModeForWindow =
+        fnAllowDarkModeForWindow allow_dark_mode_for_window =
             reinterpret_cast<fnAllowDarkModeForWindow>(
-                GetProcAddress(hUxTheme, MAKEINTRESOURCEA(133)));
-        if (AllowDarkModeForWindow) {
-            AllowDarkModeForWindow(hwnd_, enable);
+                GetProcAddress(uxtheme_module, MAKEINTRESOURCEA(133)));
+        if (allow_dark_mode_for_window) {
+            allow_dark_mode_for_window(hwnd_, enable);
         }
     }
 }
@@ -160,75 +160,20 @@ void MainWindow::UpdateStatusBar() {
 
 void MainWindow::SetMenuBar() {
     menu_bar_.Create(options_handler_);
-    HMENU hMenuBar = menu_bar_.GetMenuHandle();
-    bool x = SetMenu(hwnd_, hMenuBar);
-    if (!x) {
+    HMENU menu_handle = menu_bar_.GetMenuHandle();
+    bool set_menu_success = SetMenu(hwnd_, menu_handle);
+    if (!set_menu_success) {
         SALT_PANIC("Failed to set menu!");
     }
     DrawMenuBar(hwnd_);
 }
-// void MainWindow::CreateAppMenu() {
-//     HMENU hMenuBar = CreateMenu();
-
-//     // File Menu
-//     HMENU hFileMenu = CreatePopupMenu();
-//     AppendMenuW(hFileMenu, MF_STRING, Command::FileNew, L"&New\tCtrl+N");
-//     AppendMenuW(hFileMenu, MF_STRING, Command::FileOpen, L"&Open...\tCtrl+O");
-//     AppendMenuW(hFileMenu, MF_STRING, Command::FileSave, L"&Save\tCtrl+S");
-//     AppendMenuW(hFileMenu, MF_STRING, Command::FileSaveAs, L"Save &As...\tCtrl+Shift+S");
-//     AppendMenuW(hFileMenu, MF_SEPARATOR, 0, NULL);
-//     AppendMenuW(hFileMenu, MF_STRING, Command::FilePrint, L"&Print...\tCtrl+P");
-//     AppendMenuW(hFileMenu, MF_SEPARATOR, 0, NULL);
-//     AppendMenuW(hFileMenu, MF_STRING, Command::FileExit, L"E&xit\tAlt+F4");
-//     AppendMenuW(hMenuBar, MF_POPUP, reinterpret_cast<UINT_PTR>(hFileMenu), L"&File");
-
-//     // Edit Menu
-//     HMENU hEditMenu = CreatePopupMenu();
-//     AppendMenuW(hEditMenu, MF_STRING, Command::EditUndo, L"&Undo\tCtrl+Z");
-//     AppendMenuW(hEditMenu, MF_SEPARATOR, 0, NULL);
-//     AppendMenuW(hEditMenu, MF_STRING, Command::EditCut, L"Cu&t\tCtrl+X");
-//     AppendMenuW(hEditMenu, MF_STRING, Command::EditCopy, L"&Copy\tCtrl+C");
-//     AppendMenuW(hEditMenu, MF_STRING, Command::EditPaste, L"&Paste\tCtrl+V");
-//     AppendMenuW(hEditMenu, MF_SEPARATOR, 0, NULL);
-//     AppendMenuW(hEditMenu, MF_STRING, Command::EditSelectAll, L"Select &All\tCtrl+A");
-//     AppendMenuW(hMenuBar, MF_POPUP, reinterpret_cast<UINT_PTR>(hEditMenu), L"&Edit");
-
-//     // View Menu
-//     HMENU hViewMenu = CreatePopupMenu();
-//     UINT wrapFlags = MF_STRING | (options_handler_.IsWordWrap() ? MF_CHECKED : MF_UNCHECKED);
-//     AppendMenuW(hViewMenu, wrapFlags, Command::ViewWordWrap, L"&Word Wrap\tCtrl+W");
-//     AppendMenuW(hViewMenu, MF_SEPARATOR, 0, NULL);
-//     AppendMenuW(hViewMenu, MF_STRING, Command::ViewFont, L"Choose &Font...");
-//     AppendMenuW(hViewMenu, MF_STRING, Command::ViewZoomIn, L"Zoom &In\tCtrl++");
-//     AppendMenuW(hViewMenu, MF_STRING, Command::ViewZoomOut, L"Zoom &Out\tCtrl+-");
-//     AppendMenuW(hViewMenu, MF_STRING, Command::ViewZoomReset, L"&Reset Zoom\tCtrl+0");
-//     AppendMenuW(hViewMenu, MF_SEPARATOR, 0, NULL);
-//     AppendMenuW(
-//         hViewMenu, MF_STRING, Command::ViewThemeToggle,
-//         options_handler_.IsDarkMode() ? L"Switch to &Light Theme" : L"Switch to &Dark Theme");
-//     UINT statusFlags =
-//         MF_STRING | (options_handler_.IsStatusBarVisible() ? MF_CHECKED : MF_UNCHECKED);
-//     AppendMenuW(hViewMenu, statusFlags, Command::ViewStatusBar, L"&Status Bar");
-//     AppendMenuW(hMenuBar, MF_POPUP, reinterpret_cast<UINT_PTR>(hViewMenu), L"&View");
-
-//     // Help Menu
-//     HMENU hHelpMenu = CreatePopupMenu();
-//     AppendMenuW(hHelpMenu, MF_STRING, Command::HelpAbout, L"&About Salt...");
-//     AppendMenuW(hMenuBar, MF_POPUP, reinterpret_cast<UINT_PTR>(hHelpMenu), L"&Help");
-
-//     bool x = SetMenu(hwnd_, hMenuBar);
-//     if (!x) {
-//         MessageBoxW(hwnd_, L"Failed to set menu", L"Error", MB_OK | MB_ICONERROR);
-//     }
-//
-// }
 
 void MainWindow::RecreateEditControl() {
-    int len = edit_hwnd_ ? GetWindowTextLengthW(edit_hwnd_) : 0;
+    int text_len = edit_hwnd_ ? GetWindowTextLengthW(edit_hwnd_) : 0;
     std::wstring buffer;
-    if (len > 0) {
-        buffer.resize(len);
-        GetWindowTextW(edit_hwnd_, &buffer[0], len + 1);
+    if (text_len > 0) {
+        buffer.resize(text_len);
+        GetWindowTextW(edit_hwnd_, &buffer[0], text_len + 1);
     }
 
     if (edit_hwnd_) {
@@ -240,19 +185,19 @@ void MainWindow::RecreateEditControl() {
         style |= WS_HSCROLL | ES_AUTOHSCROLL;
     }
 
-    RECT rcClient;
-    GetClientRect(hwnd_, &rcClient);
+    RECT client_rect;
+    GetClientRect(hwnd_, &client_rect);
 
     edit_hwnd_ = CreateWindowExW(
-        0, L"EDIT", buffer.c_str(), style, 0, 0, rcClient.right, rcClient.bottom, hwnd_,
+        0, L"EDIT", buffer.c_str(), style, 0, 0, client_rect.right, client_rect.bottom, hwnd_,
         reinterpret_cast<HMENU>(Context::ControlId::MainEdit), GetModuleHandle(NULL), NULL);
 
-    // Padding margins for modern comfortable reading
+    // Padding margins for comfortable reading
     SendMessageW(edit_hwnd_, EM_SETMARGINS, EC_LEFTMARGIN | EC_RIGHTMARGIN, MAKELPARAM(16, 16));
 
     // Tab size: 4 spaces equivalent
-    int tabStops = 16;
-    SendMessageW(edit_hwnd_, EM_SETTABSTOPS, 1, reinterpret_cast<LPARAM>(&tabStops));
+    int tab_stops = 16;
+    SendMessageW(edit_hwnd_, EM_SETTABSTOPS, 1, reinterpret_cast<LPARAM>(&tab_stops));
 
     // Remove the default 30,000 / 64KB text limit for the edit control
     SendMessageW(edit_hwnd_, EM_SETLIMITTEXT, 0, 0);
@@ -276,14 +221,13 @@ LRESULT MainWindow::HandleMessage(UINT msg, WPARAM param_w, LPARAM param_l) {
                                 reinterpret_cast<HMENU>(Context::ControlId::MainStatus),
                                 GetModuleHandle(NULL), NULL);
 
-            int statusParts[] = {160, 310, 440, 540, -1};
-            SendMessageW(status_hwnd_, SB_SETPARTS, 5, reinterpret_cast<LPARAM>(statusParts));
+            int status_parts[] = {160, 310, 440, 540, -1};
+            SendMessageW(status_hwnd_, SB_SETPARTS, 5, reinterpret_cast<LPARAM>(status_parts));
 
             // Create Edit Control
             RecreateEditControl();
             options_handler_.Init(hwnd_, edit_hwnd_);
 
-            // CreateAppMenu();
             MainWindow::SetMenuBar();
 
             UpdateTitle();
@@ -297,16 +241,16 @@ LRESULT MainWindow::HandleMessage(UINT msg, WPARAM param_w, LPARAM param_l) {
             int width = LOWORD(param_l);
             int height = HIWORD(param_l);
 
-            int statusHeight = 0;
+            int status_height = 0;
             if (status_hwnd_ && options_handler_.IsStatusBarVisible()) {
                 SendMessageW(status_hwnd_, WM_SIZE, param_w, param_l);
-                RECT rcStatus;
-                GetWindowRect(status_hwnd_, &rcStatus);
-                statusHeight = rcStatus.bottom - rcStatus.top;
+                RECT status_rect;
+                GetWindowRect(status_hwnd_, &status_rect);
+                status_height = status_rect.bottom - status_rect.top;
             }
 
             if (edit_hwnd_) {
-                MoveWindow(edit_hwnd_, 0, 0, width, height - statusHeight, TRUE);
+                MoveWindow(edit_hwnd_, 0, 0, width, height - status_height, TRUE);
             }
             return 0;
         }
@@ -394,11 +338,11 @@ LRESULT MainWindow::HandleMessage(UINT msg, WPARAM param_w, LPARAM param_l) {
                 case Context::Command::ViewWordWrap: {
                     options_handler_.ToggleWordWrap();
                     RecreateEditControl();
-                    // CreateAppMenu();
                     MainWindow::SetMenuBar();
-                    RECT rc;
-                    GetClientRect(hwnd_, &rc);
-                    SendMessageW(hwnd_, WM_SIZE, 0, MAKELPARAM(rc.right, rc.bottom));
+                    RECT client_rect;
+                    GetClientRect(hwnd_, &client_rect);
+                    SendMessageW(hwnd_, WM_SIZE, 0,
+                                 MAKELPARAM(client_rect.right, client_rect.bottom));
                     SetFocus(edit_hwnd_);
                     break;
                 }
@@ -422,25 +366,24 @@ LRESULT MainWindow::HandleMessage(UINT msg, WPARAM param_w, LPARAM param_l) {
                 case Context::Command::ViewThemeToggle:
                     options_handler_.ToggleTheme();
                     EnableDarkMode(options_handler_.IsDarkMode());
-                    // CreateAppMenu();
                     MainWindow::SetMenuBar();
                     break;
 
                 case Context::Command::ViewStatusBar: {
                     bool visible = options_handler_.ToggleStatusBar();
                     ShowWindow(status_hwnd_, visible ? SW_SHOW : SW_HIDE);
-                    // CreateAppMenu();
                     MainWindow::SetMenuBar();
-                    RECT rc;
-                    GetClientRect(hwnd_, &rc);
-                    SendMessageW(hwnd_, WM_SIZE, 0, MAKELPARAM(rc.right, rc.bottom));
+                    RECT client_rect;
+                    GetClientRect(hwnd_, &client_rect);
+                    SendMessageW(hwnd_, WM_SIZE, 0,
+                                 MAKELPARAM(client_rect.right, client_rect.bottom));
                     break;
                 }
 
                 case Context::Command::HelpAbout:
                     MessageBoxW(hwnd_,
-                                L"Salt Text Editor v0.1.0\n\n"
-                                L"A text editor for Windows.\n"
+                                L"Salt Text Editor v0.1.1\n\n"
+                                L"A simple text editor for Windows.\n"
                                 L"Made for those salty that notepad became bloated.\n\n",
                                 L"About Salt", MB_OK | MB_ICONINFORMATION);
                     break;

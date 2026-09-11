@@ -1,8 +1,13 @@
-#ifndef SALT_LIB_CONTEXT_H
-#define SALT_LIB_CONTEXT_H
+#ifndef SALT_LIB_CONTEXT_H_
+#define SALT_LIB_CONTEXT_H_
 
 #include <windows.h>
 
+/// @file context.h
+/// @brief Command identifiers and child control constants for the Salt editor.
+
+/// @class Context
+/// @brief Scoped container for application command and control IDs.
 class Context {
    public:
     /// @enum Command
@@ -44,4 +49,4 @@ class Context {
     };
 };
 
-#endif  // SALT_LIB_CONTEXT_H
+#endif  // SALT_LIB_CONTEXT_H_
