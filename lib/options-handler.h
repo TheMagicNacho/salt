@@ -38,7 +38,7 @@ class OptionsHandler {
     /// @brief Constructs an OptionsHandler instance.
     /// @param main_hwnd Handle to the main application window.
     /// @param edit_hwnd Handle to the text edit control.
-    OptionsHandler(HWND main_hwnd = nullptr, HWND edit_hwnd = nullptr);
+    explicit OptionsHandler(HWND main_hwnd = nullptr, HWND edit_hwnd = nullptr);
 
     /// @brief Destructor that cleans up GDI font and brush objects.
     ~OptionsHandler();

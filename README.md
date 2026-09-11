@@ -33,6 +33,12 @@ This is the text editor if your salty that microsoft made notepad so bloated.
 - To auto-format code: `bazelisk run //:format`
 - To run tests (when test targets are present): `bazelisk test //tests:all`
 
+## Release
+
+- To release a new version, tag the commit with 'r*._._' format (e.g. `r1.0.0`)
+- Then push the tag to the remote repository: `git push origin r1.0.0`
+- The pipeline will handle the rest of the release by saving the msi in the release section on github.
+
 # FAQ
 
 - Does this have to run in windows 11?

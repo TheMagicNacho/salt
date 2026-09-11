@@ -22,7 +22,7 @@ class FileHandler {
    public:
     /// @brief Constructs a new FileHandler instance.
     /// @param edit_hwnd Optional handle to the Win32 edit control.
-    FileHandler(HWND edit_hwnd = nullptr);
+    explicit FileHandler(HWND edit_hwnd = nullptr);
 
     /// @brief Prompts to save if needed, then resets the editor for a new document.
     /// @param hwnd Handle to the parent window (used as modal parent for dialogs).
