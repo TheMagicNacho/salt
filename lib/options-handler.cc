@@ -63,25 +63,25 @@ void OptionsHandler::ApplyFont() {
 void OptionsHandler::ChooseFontDialog() {
     if (!main_hwnd_) return;
 
-    LOGFONTW lf{};
+    LOGFONTW log_font{};
     HDC hdc = GetDC(main_hwnd_);
     int dpi = GetDeviceCaps(hdc, LOGPIXELSY);
     ReleaseDC(main_hwnd_, hdc);
 
-    lf.lfHeight = -MulDiv(font_size_pt_, dpi, 72);
-    lf.lfWeight = FW_NORMAL;
-    lf.lfQuality = CLEARTYPE_QUALITY;
-    wcsncpy_s(lf.lfFaceName, font_name_.c_str(), _TRUNCATE);
+    log_font.lfHeight = -MulDiv(font_size_pt_, dpi, 72);
+    log_font.lfWeight = FW_NORMAL;
+    log_font.lfQuality = CLEARTYPE_QUALITY;
+    wcsncpy_s(log_font.lfFaceName, font_name_.c_str(), _TRUNCATE);
 
-    CHOOSEFONTW cf{};
-    cf.lStructSize = sizeof(CHOOSEFONTW);
-    cf.hwndOwner = main_hwnd_;
-    cf.lpLogFont = &lf;
-    cf.Flags = CF_INITTOLOGFONTSTRUCT | CF_SCREENFONTS | CF_EFFECTS;
+    CHOOSEFONTW choose_font{};
+    choose_font.lStructSize = sizeof(CHOOSEFONTW);
+    choose_font.hwndOwner = main_hwnd_;
+    choose_font.lpLogFont = &log_font;
+    choose_font.Flags = CF_INITTOLOGFONTSTRUCT | CF_SCREENFONTS | CF_EFFECTS;
 
-    if (ChooseFontW(&cf)) {
-        font_name_ = lf.lfFaceName;
-        font_size_pt_ = cf.iPointSize / 10;
+    if (ChooseFontW(&choose_font)) {
+        font_name_ = log_font.lfFaceName;
+        font_size_pt_ = choose_font.iPointSize / 10;
         ApplyFont();
     }
 }
@@ -150,3 +150,4 @@ COLORREF OptionsHandler::GetTextColor() const {
 HBRUSH OptionsHandler::GetBackgroundBrush() const {
     return (theme_mode_ == ThemeMode::Dark) ? dark_bg_brush_ : light_bg_brush_;
 }
+

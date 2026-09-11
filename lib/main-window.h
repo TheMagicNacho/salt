@@ -4,11 +4,11 @@
 #include <windows.h>
 #include <commctrl.h>
 
-#include "lib/file-handler.h"
-#include "lib/options-handler.h"
-#include "lib/menu-bar.h"
-#include "lib/errors.h"
 #include "lib/context.h"
+#include "lib/errors.h"
+#include "lib/file-handler.h"
+#include "lib/menu-bar.h"
+#include "lib/options-handler.h"
 
 /// @file main-window.h
 /// @brief Main application window and message dispatcher for the Salt text editor.
@@ -65,13 +65,10 @@ class MainWindow {
     /// save state.
     void UpdateStatusBar();
 
-    /// @brief Builds and attaches the top-level application menu bar to the window.
-    // void CreateAppMenu();
-
     /// @brief Recreates the child edit control (required when toggling word wrap styles in Win32).
     void RecreateEditControl();
 
-    /// @brief Sets the menu bar for the window.
+    /// @brief Builds and attaches the top-level application menu bar to the window.
     void SetMenuBar();
 
     /// @brief Member window message handler for all Win32 messages dispatched to this window.
@@ -90,3 +87,4 @@ class MainWindow {
 };
 
 #endif  // SALT_LIB_MAIN_WINDOW_H_
+
