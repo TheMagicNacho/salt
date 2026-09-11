@@ -36,29 +36,30 @@ jobs:
           disk-cache: ${{ github.workflow }}
           repository-cache: true
 
-      - name: Configure Clang / LLVM Path
+      - name: Configure Compiler
         shell: pwsh
         run: |
           if (Test-Path "C:\Program Files\LLVM\bin") {
             "C:\Program Files\LLVM\bin" | Out-File -FilePath $env:GITHUB_PATH -Append
           }
 
-      - name: Lint Code (Clang-Format via Bazel)
+      - name: Lint
         shell: cmd
         run: bazelisk build //:lint
 
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v3
         with:
-          languages: 'c-cpp'
+          languages: "c-cpp"
+          build-mode: "manual"
 
-      - name: Build Application (Dry Build)
+      - name: Build
         shell: cmd
         run: bazelisk build //main:salt
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v3
 
-      - name: Run Tests
-        shell: pwsh
+      - name: Test
+        shell: cmd
         run: bazelisk test //tests:all
