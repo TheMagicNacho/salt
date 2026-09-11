@@ -341,7 +341,8 @@ LRESULT MainWindow::HandleMessage(UINT msg, WPARAM param_w, LPARAM param_l) {
                     MainWindow::SetMenuBar();
                     RECT client_rect;
                     GetClientRect(hwnd_, &client_rect);
-                    SendMessageW(hwnd_, WM_SIZE, 0, MAKELPARAM(client_rect.right, client_rect.bottom));
+                    SendMessageW(hwnd_, WM_SIZE, 0,
+                                 MAKELPARAM(client_rect.right, client_rect.bottom));
                     SetFocus(edit_hwnd_);
                     break;
                 }
@@ -374,7 +375,8 @@ LRESULT MainWindow::HandleMessage(UINT msg, WPARAM param_w, LPARAM param_l) {
                     MainWindow::SetMenuBar();
                     RECT client_rect;
                     GetClientRect(hwnd_, &client_rect);
-                    SendMessageW(hwnd_, WM_SIZE, 0, MAKELPARAM(client_rect.right, client_rect.bottom));
+                    SendMessageW(hwnd_, WM_SIZE, 0,
+                                 MAKELPARAM(client_rect.right, client_rect.bottom));
                     break;
                 }
 

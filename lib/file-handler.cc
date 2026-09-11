@@ -167,7 +167,8 @@ bool FileHandler::Open(HWND hwnd) {
         return false;
     }
 
-    char* raw_buffer = static_cast<char*>(HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, file_size + 1));
+    char* raw_buffer =
+        static_cast<char*>(HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, file_size + 1));
     DWORD bytes_read = 0;
     bool success = false;
 
@@ -195,8 +196,8 @@ bool FileHandler::Save(HWND hwnd) {
 
     if (!text_edit_) return false;
 
-    HANDLE file_handle = CreateFileW(current_file_path_.c_str(), GENERIC_WRITE, 0, NULL, CREATE_ALWAYS,
-                                     FILE_ATTRIBUTE_NORMAL, NULL);
+    HANDLE file_handle = CreateFileW(current_file_path_.c_str(), GENERIC_WRITE, 0, NULL,
+                                     CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
     if (file_handle == INVALID_HANDLE_VALUE) {
         MessageBoxW(hwnd, L"Failed to save file.", L"Error", MB_ICONERROR);
         return false;
@@ -245,8 +246,8 @@ void FileHandler::Print(HWND hwnd) {
 
             if (text_edit_) {
                 int text_len = GetWindowTextLengthW(text_edit_);
-                wchar_t* text_buffer = static_cast<wchar_t*>(
-                    HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, (text_len + 1) * sizeof(wchar_t)));
+                wchar_t* text_buffer = static_cast<wchar_t*>(HeapAlloc(
+                    GetProcessHeap(), HEAP_ZERO_MEMORY, (text_len + 1) * sizeof(wchar_t)));
                 GetWindowTextW(text_edit_, text_buffer, text_len + 1);
 
                 RECT print_rect = {100, 100, 2000, 3000};
@@ -261,4 +262,3 @@ void FileHandler::Print(HWND hwnd) {
         DeleteDC(print_dialog.hDC);
     }
 }
-

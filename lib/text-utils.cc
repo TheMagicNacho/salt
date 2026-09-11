@@ -129,7 +129,8 @@ std::wstring DecodeTextFile(const char* raw_buffer, DWORD buffer_size) {
     }
 
     // Try decoding as strict UTF-8 (fails if invalid UTF-8 sequences exist)
-    int wide_len = MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, raw_buffer, buffer_size, NULL, 0);
+    int wide_len =
+        MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, raw_buffer, buffer_size, NULL, 0);
     if (wide_len > 0) {
         std::wstring wide_buffer(wide_len, L'\0');
         MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, raw_buffer, buffer_size, &wide_buffer[0],
@@ -157,4 +158,3 @@ std::wstring DecodeTextFile(const char* raw_buffer, DWORD buffer_size) {
 }
 
 }  // namespace salt
-

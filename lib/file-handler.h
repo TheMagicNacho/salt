@@ -79,4 +79,3 @@ class FileHandler {
 };
 
 #endif  // SALT_LIB_FILE_HANDLER_H_
-

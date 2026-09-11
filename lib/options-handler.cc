@@ -150,4 +150,3 @@ COLORREF OptionsHandler::GetTextColor() const {
 HBRUSH OptionsHandler::GetBackgroundBrush() const {
     return (theme_mode_ == ThemeMode::Dark) ? dark_bg_brush_ : light_bg_brush_;
 }
-

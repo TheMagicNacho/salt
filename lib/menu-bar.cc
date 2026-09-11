@@ -61,4 +61,3 @@ void MenuBar::Create(OptionsHandler& options_handler) {
 }
 
 HMENU MenuBar::GetMenuHandle() const { return menu_bar_; }
-

@@ -97,4 +97,3 @@ void PanicHandler::SetEmergencySaveCallback(EmergencySaveCallback callback) {
 }
 
 }  // namespace salt
-

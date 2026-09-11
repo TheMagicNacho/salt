@@ -24,7 +24,8 @@ class PanicHandler {
     /// @param callback Function returning the wide string content of the current buffer.
     static void SetEmergencySaveCallback(EmergencySaveCallback callback);
 
-    /// @brief Displays a crash dialog with diagnostic info, triggers emergency save, and terminates.
+    /// @brief Displays a crash dialog with diagnostic info, triggers emergency save, and
+    /// terminates.
     /// @param message Descriptive error message.
     /// @param file Source file name where panic originated (optional).
     /// @param line Source line number where panic originated (optional).
@@ -49,4 +50,3 @@ class PanicHandler {
     } while (0)
 
 #endif  // SALT_LIB_ERRORS_H_
-

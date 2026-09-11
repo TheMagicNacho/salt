@@ -113,4 +113,3 @@ class OptionsHandler {
 };
 
 #endif  // SALT_LIB_OPTIONS_HANDLER_H_
-

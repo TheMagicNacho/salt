@@ -34,4 +34,3 @@ class MenuBar {
 };
 
 #endif  // SALT_LIB_MENU_BAR_H_
-

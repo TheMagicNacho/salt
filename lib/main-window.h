@@ -87,4 +87,3 @@ class MainWindow {
 };
 
 #endif  // SALT_LIB_MAIN_WINDOW_H_
-

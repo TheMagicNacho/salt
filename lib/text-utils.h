@@ -14,7 +14,6 @@ namespace salt {
 /// @return Wide string with all line endings normalized to \\r\\n.
 std::wstring NormalizeLineEndings(const std::wstring& text);
 
-
 /// @brief Decodes a UTF-8 byte buffer into a wide string.
 /// @param raw_buffer Pointer to UTF-8 encoded byte buffer.
 /// @param raw_len Number of bytes in the buffer.
@@ -43,4 +42,3 @@ std::wstring DecodeTextFile(const char* raw_buffer, DWORD buffer_size);
 }  // namespace salt
 
 #endif  // SALT_LIB_TEXT_UTILS_H_
-
