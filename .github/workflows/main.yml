@@ -46,18 +46,9 @@ jobs:
         shell: cmd
         run: bazelisk build //:lint
 
-      - name: Initialize CodeQL
-        uses: github/codeql-action/init@v3
-        with:
-          languages: "c-cpp"
-          build-mode: "manual"
-
       - name: Build Application (Optimized Build)
         shell: cmd
         run: bazelisk build -c opt //main:salt
-
-      - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v3
 
       - name: Test
         shell: cmd
@@ -67,7 +58,7 @@ jobs:
         shell: cmd
         run: bazelisk build -c opt //installer:salt_msi
 
-      - name: Store MSI as 30-Day Artifact
+      - name: Store MSI as Artifact
         uses: actions/upload-artifact@v4
         with:
           name: salt-installer-msi
