@@ -112,4 +112,29 @@ TEST(FileHandlerTest, NewResetsFilePathAndDirtyStateWhenClean) {
     EXPECT_EQ(file_handler.GetFileName(), L"Untitled");
 }
 
+TEST(FileHandlerTest, OpenFileFailsOnNonexistentFile) {
+    FileHandler file_handler;
+    EXPECT_FALSE(file_handler.OpenFile(nullptr, L"C:\\nonexistent_salt_test_file_12345.txt"));
+}
+
+TEST(FileHandlerTest, OpenFileLoadsExistingFile) {
+    wchar_t temp_dir[MAX_PATH];
+    GetTempPathW(MAX_PATH, temp_dir);
+    std::wstring temp_file = std::wstring(temp_dir) + L"salt_test_sample.txt";
+    HANDLE file_handle = CreateFileW(temp_file.c_str(), GENERIC_WRITE, 0, NULL, CREATE_ALWAYS,
+                                     FILE_ATTRIBUTE_NORMAL, NULL);
+    ASSERT_NE(file_handle, INVALID_HANDLE_VALUE);
+    const char* content = "Hello Salt Test";
+    DWORD bytes_written = 0;
+    WriteFile(file_handle, content, static_cast<DWORD>(strlen(content)), &bytes_written, NULL);
+    CloseHandle(file_handle);
+
+    FileHandler file_handler;
+    EXPECT_TRUE(file_handler.OpenFile(nullptr, temp_file));
+    EXPECT_EQ(file_handler.GetFileName(), L"salt_test_sample.txt");
+    EXPECT_FALSE(file_handler.IsDirty());
+
+    DeleteFileW(temp_file.c_str());
+}
+
 }  // namespace

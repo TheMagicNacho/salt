@@ -42,8 +42,14 @@ class MainWindow {
     /// @brief Creates the main application window and displays it.
     /// @param instance Application instance handle.
     /// @param show_state Window show state (e.g. SW_SHOW, SW_MAXIMIZE).
+    /// @param initial_file Optional file path to open immediately on startup.
     /// @return HWND handle to the created window, or nullptr on failure.
-    HWND Create(HINSTANCE instance, int show_state);
+    HWND Create(HINSTANCE instance, int show_state, const std::wstring& initial_file = L"");
+
+    /// @brief Opens the file at the specified path and updates the UI state.
+    /// @param path Path to the file to open.
+    /// @return true if the file was loaded successfully; false otherwise.
+    bool OpenFile(const std::wstring& path);
 
     /// @brief Static Win32 window procedure that routes messages to the target MainWindow instance.
     /// @param hwnd Window handle.

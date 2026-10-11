@@ -1,9 +1,10 @@
 #include <windows.h>
 #include <commctrl.h>
 #include <objbase.h>
+#include <shellapi.h>
 
-#include "lib/main-window.h"
 #include "lib/errors.h"
+#include "lib/main-window.h"
 
 #pragma comment( \
     linker,      \
@@ -38,8 +39,18 @@ int WINAPI wWinMain(HINSTANCE h_instance, HINSTANCE, PWSTR, int nCmdShow) {
             SALT_PANIC("Window Registration Failed!");
         }
 
+        std::wstring initial_file;
+        int argc = 0;
+        LPWSTR* argv = CommandLineToArgvW(GetCommandLineW(), &argc);
+        if (argv) {
+            if (argc > 1 && argv[1] != nullptr) {
+                initial_file = argv[1];
+            }
+            LocalFree(argv);
+        }
+
         MainWindow window;
-        HWND hwnd = window.Create(h_instance, nCmdShow);
+        HWND hwnd = window.Create(h_instance, nCmdShow, initial_file);
         if (!hwnd) {
             SALT_PANIC("Window Creation Failed!");
         }

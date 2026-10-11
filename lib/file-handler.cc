@@ -154,10 +154,19 @@ bool FileHandler::Open(HWND hwnd) {
     std::wstring selected_file = GetOpenFilePathModern(hwnd);
     if (selected_file.empty()) return false;
 
-    HANDLE file_handle = CreateFileW(selected_file.c_str(), GENERIC_READ, FILE_SHARE_READ, NULL,
+    return OpenFile(hwnd, selected_file);
+}
+
+bool FileHandler::OpenFile(HWND hwnd, const std::wstring& path) {
+    if (path.empty()) return false;
+    if (!PromptSaveIfDirty(hwnd)) return false;
+
+    HANDLE file_handle = CreateFileW(path.c_str(), GENERIC_READ, FILE_SHARE_READ, NULL,
                                      OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
     if (file_handle == INVALID_HANDLE_VALUE) {
-        MessageBoxW(hwnd, L"Failed to open file.", L"Error", MB_ICONERROR);
+        if (hwnd) {
+            MessageBoxW(hwnd, L"Failed to open file.", L"Error", MB_ICONERROR);
+        }
         return false;
     }
 
@@ -169,6 +178,11 @@ bool FileHandler::Open(HWND hwnd) {
 
     char* raw_buffer =
         static_cast<char*>(HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, file_size + 1));
+    if (!raw_buffer) {
+        CloseHandle(file_handle);
+        return false;
+    }
+
     DWORD bytes_read = 0;
     bool success = false;
 
@@ -178,10 +192,17 @@ bool FileHandler::Open(HWND hwnd) {
 
         if (text_edit_) {
             SetWindowTextW(text_edit_, wide_buffer.c_str());
-            current_file_path_ = selected_file;
-            is_dirty_ = false;
-            success = true;
         }
+
+        wchar_t resolved_path[MAX_PATH];
+        if (GetFullPathNameW(path.c_str(), MAX_PATH, resolved_path, nullptr) != 0) {
+            current_file_path_ = resolved_path;
+        } else {
+            current_file_path_ = path;
+        }
+
+        is_dirty_ = false;
+        success = true;
     }
 
     HeapFree(GetProcessHeap(), 0, raw_buffer);

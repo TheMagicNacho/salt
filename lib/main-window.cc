@@ -5,6 +5,7 @@
 
 #include <dwmapi.h>
 #include <objbase.h>
+#include <shellapi.h>
 #include <shobjidl_core.h>
 #include <uxtheme.h>
 
@@ -59,7 +60,7 @@ HACCEL MainWindow::CreateAppAccelerators() {
     return CreateAcceleratorTableW(accels, sizeof(accels) / sizeof(accels[0]));
 }
 
-HWND MainWindow::Create(HINSTANCE instance, int show_state) {
+HWND MainWindow::Create(HINSTANCE instance, int show_state, const std::wstring& initial_file) {
     // Create window
     try {
         hwnd_ =
@@ -69,12 +70,25 @@ HWND MainWindow::Create(HINSTANCE instance, int show_state) {
         SALT_PANIC("Could not get window handle!");
     }
 
+    if (hwnd_ && !initial_file.empty()) {
+        OpenFile(initial_file);
+    }
+
     // Render
     if (hwnd_) {
         ShowWindow(hwnd_, show_state);
         UpdateWindow(hwnd_);
     }
     return hwnd_;
+}
+
+bool MainWindow::OpenFile(const std::wstring& path) {
+    if (file_handler_.OpenFile(hwnd_, path)) {
+        UpdateTitle();
+        UpdateStatusBar();
+        return true;
+    }
+    return false;
 }
 
 LRESULT CALLBACK MainWindow::StaticWndProc(HWND hwnd, UINT msg, WPARAM param_w, LPARAM param_l) {
@@ -233,6 +247,8 @@ LRESULT MainWindow::HandleMessage(UINT msg, WPARAM param_w, LPARAM param_l) {
             UpdateTitle();
             UpdateStatusBar();
 
+            DragAcceptFiles(hwnd_, TRUE);
+
             SetFocus(edit_hwnd_);
             return 0;
         }
@@ -388,6 +404,16 @@ LRESULT MainWindow::HandleMessage(UINT msg, WPARAM param_w, LPARAM param_l) {
                                 L"About Salt", MB_OK | MB_ICONINFORMATION);
                     break;
             }
+            return 0;
+        }
+
+        case WM_DROPFILES: {
+            HDROP drop_handle = reinterpret_cast<HDROP>(param_w);
+            wchar_t dropped_file[MAX_PATH] = {0};
+            if (DragQueryFileW(drop_handle, 0, dropped_file, MAX_PATH)) {
+                OpenFile(dropped_file);
+            }
+            DragFinish(drop_handle);
             return 0;
         }
 

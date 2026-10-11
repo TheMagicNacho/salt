@@ -34,6 +34,12 @@ class FileHandler {
     /// @return true if a file was successfully opened; false otherwise.
     bool Open(HWND hwnd);
 
+    /// @brief Opens and loads the file at the specified path into the editor.
+    /// @param hwnd Handle to the parent window.
+    /// @param path Full or relative file path to open.
+    /// @return true if the file was successfully opened and loaded; false otherwise.
+    bool OpenFile(HWND hwnd, const std::wstring& path);
+
     /// @brief Saves the current document. If untitled, prompts with Save As dialog.
     /// @param hwnd Handle to the parent window.
     /// @return true if saved successfully; false otherwise.
