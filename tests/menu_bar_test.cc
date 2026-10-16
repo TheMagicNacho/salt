@@ -151,4 +151,22 @@ TEST(MenuBarTest, CreateCanBeCalledRepeatedlyWithoutLeakOrError) {
     EXPECT_EQ(GetMenuItemCount(root), 4);
 }
 
+TEST(MenuBarTest, CreateReflectsFollowTailAndReverseLinesCheckedStates) {
+    MenuBar menu_bar;
+    OptionsHandler options;
+
+    // Both unchecked
+    menu_bar.Create(options, false, false);
+    HMENU view_menu = GetSubMenu(menu_bar.GetMenuHandle(), 2);
+    ASSERT_NE(view_menu, nullptr);
+    EXPECT_FALSE(GetMenuState(view_menu, Context::Command::ViewFollowTail, MF_BYCOMMAND) & MF_CHECKED);
+    EXPECT_FALSE(GetMenuState(view_menu, Context::Command::ViewReverseLines, MF_BYCOMMAND) & MF_CHECKED);
+
+    // Both checked
+    menu_bar.Create(options, true, true);
+    view_menu = GetSubMenu(menu_bar.GetMenuHandle(), 2);
+    EXPECT_TRUE(GetMenuState(view_menu, Context::Command::ViewFollowTail, MF_BYCOMMAND) & MF_CHECKED);
+    EXPECT_TRUE(GetMenuState(view_menu, Context::Command::ViewReverseLines, MF_BYCOMMAND) & MF_CHECKED);
+}
+
 }  // namespace

@@ -1,4 +1,5 @@
 #include "text-utils.h"
+#include <vector>
 
 namespace salt {
 
@@ -155,6 +156,44 @@ std::wstring DecodeTextFile(const char* raw_buffer, DWORD buffer_size) {
     }
 
     return L"";
+}
+
+std::wstring ReverseLines(const std::wstring& text) {
+    if (text.empty()) {
+        return L"";
+    }
+
+    std::wstring normalized = NormalizeLineEndings(text);
+    // Split on \r\n
+    std::vector<std::wstring> lines;
+    size_t start = 0;
+    while (start < normalized.size()) {
+        size_t pos = normalized.find(L"\r\n", start);
+        if (pos == std::wstring::npos) {
+            lines.push_back(normalized.substr(start));
+            break;
+        } else {
+            lines.push_back(normalized.substr(start, pos - start));
+            start = pos + 2;
+        }
+    }
+
+    // If normalized ended with \r\n, there's a trailing empty line represented
+    if (normalized.size() >= 2 &&
+        normalized.substr(normalized.size() - 2) == L"\r\n") {
+        lines.push_back(L"");
+    }
+
+    std::wstring result;
+    result.reserve(normalized.size());
+    for (auto it = lines.rbegin(); it != lines.rend(); ++it) {
+        result += *it;
+        if (std::next(it) != lines.rend()) {
+            result += L"\r\n";
+        }
+    }
+
+    return result;
 }
 
 }  // namespace salt

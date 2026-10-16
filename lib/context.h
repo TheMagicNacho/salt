@@ -36,10 +36,15 @@ class Context {
         ViewZoomReset = 1025,    ///< Reset zoom to default.
         ViewThemeToggle = 1026,  ///< Toggle between dark and light themes.
         ViewStatusBar = 1027,    ///< Toggle status bar visibility.
+        ViewFollowTail = 1028,   ///< Toggle following log tail in read-only mode.
+        ViewReverseLines = 1029, ///< Toggle reversing lines (tac mode).
 
         // Help commands
         HelpAbout = 1031,  ///< Show About dialog.
     };
+
+    /// @brief Custom window message posted when background file watcher detects changes.
+    static constexpr UINT kMsgLogUpdated = WM_USER + 101;
 
     /// @enum ControlId
     /// @brief Control IDs for child Win32 windows.

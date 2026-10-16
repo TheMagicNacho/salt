@@ -18,8 +18,8 @@ TEST(MainWindowTest, CreateAppAcceleratorsReturnsValidTableWithExpectedEntries) 
     std::vector<ACCEL> accels(count);
     CopyAcceleratorTableW(accel_table, accels.data(), count);
 
-    // Assert 1: Exactly 14 accelerators must be registered.
-    EXPECT_EQ(count, 14);
+    // Assert 1: Exactly 16 accelerators must be registered.
+    EXPECT_EQ(count, 16);
 
     // Assert 2: Verify specific critical command shortcuts are present.
     auto has_cmd = [&](WORD cmd) {
@@ -33,6 +33,8 @@ TEST(MainWindowTest, CreateAppAcceleratorsReturnsValidTableWithExpectedEntries) 
     EXPECT_TRUE(has_cmd(Context::Command::FileSaveAs));
     EXPECT_TRUE(has_cmd(Context::Command::FilePrint));
     EXPECT_TRUE(has_cmd(Context::Command::ViewWordWrap));
+    EXPECT_TRUE(has_cmd(Context::Command::ViewFollowTail));
+    EXPECT_TRUE(has_cmd(Context::Command::ViewReverseLines));
     EXPECT_TRUE(has_cmd(Context::Command::EditUndo));
     EXPECT_TRUE(has_cmd(Context::Command::EditSelectAll));
     EXPECT_TRUE(has_cmd(Context::Command::ViewZoomIn));

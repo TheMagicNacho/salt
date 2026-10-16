@@ -54,6 +54,13 @@ cc_test(
     deps = COMMON_DEPS,
 )
 
+cc_test(
+    name = "log_tail_handler_test",
+    srcs = ["log_tail_handler_test.cc"],
+    defines = COMMON_DEFINES,
+    deps = COMMON_DEPS,
+)
+
 test_suite(
     name = "all_tests",
     tests = [
@@ -63,5 +70,6 @@ test_suite(
         ":menu_bar_test",
         ":main_window_test",
         ":errors_test",
+        ":log_tail_handler_test",
     ],
 )

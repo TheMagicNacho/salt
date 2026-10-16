@@ -137,4 +137,62 @@ TEST(FileHandlerTest, OpenFileLoadsExistingFile) {
     DeleteFileW(temp_file.c_str());
 }
 
+TEST(FileHandlerTest, OpenFileLoadsDeveloperFilesTomlYamlAndRust) {
+    wchar_t temp_dir[MAX_PATH];
+    GetTempPathW(MAX_PATH, temp_dir);
+
+    struct FileTestCase {
+        std::wstring filename;
+        std::string content;
+    } test_cases[] = {
+        {L"salt_test_config.toml", "[package]\nname = \"salt\"\nversion = \"0.1.0\"\n"},
+        {L"salt_test_workflow.yaml", "name: CI\non: [push]\njobs:\n  build:\n    runs-on: windows-latest\n"},
+        {L"salt_test_main.rs", "fn main() {\n    println!(\"Hello Salt!\");\n}\n"},
+    };
+
+    for (const auto& test_case : test_cases) {
+        std::wstring temp_path = std::wstring(temp_dir) + test_case.filename;
+        HANDLE file_handle = CreateFileW(temp_path.c_str(), GENERIC_WRITE, 0, NULL, CREATE_ALWAYS,
+                                         FILE_ATTRIBUTE_NORMAL, NULL);
+        ASSERT_NE(file_handle, INVALID_HANDLE_VALUE);
+        DWORD bytes_written = 0;
+        WriteFile(file_handle, test_case.content.c_str(),
+                  static_cast<DWORD>(test_case.content.size()), &bytes_written, NULL);
+        CloseHandle(file_handle);
+
+        FileHandler file_handler;
+        EXPECT_TRUE(file_handler.OpenFile(nullptr, temp_path));
+        EXPECT_EQ(file_handler.GetFileName(), test_case.filename);
+        EXPECT_FALSE(file_handler.IsDirty());
+
+        DeleteFileW(temp_path.c_str());
+    }
+}
+
+TEST(FileHandlerTest, OpenFileCanOpenActivelyWrittenLogWithSharedWrite) {
+    wchar_t temp_dir[MAX_PATH];
+    GetTempPathW(MAX_PATH, temp_dir);
+    std::wstring temp_file = std::wstring(temp_dir) + L"salt_active_test.log";
+
+    // Simulate an external logging service actively holding a write handle with FILE_SHARE_READ | FILE_SHARE_WRITE
+    HANDLE writer_handle = CreateFileW(
+        temp_file.c_str(), GENERIC_WRITE,
+        FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+        NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+    ASSERT_NE(writer_handle, INVALID_HANDLE_VALUE);
+
+    const char log_entry[] = "[INFO] Server started\n[INFO] Worker active\n";
+    DWORD written = 0;
+    WriteFile(writer_handle, log_entry, static_cast<DWORD>(strlen(log_entry)), &written, NULL);
+    FlushFileBuffers(writer_handle);
+
+    // Open file in Salt while writer_handle is still open!
+    FileHandler file_handler;
+    EXPECT_TRUE(file_handler.OpenFile(nullptr, temp_file));
+    EXPECT_EQ(file_handler.GetFileName(), L"salt_active_test.log");
+
+    CloseHandle(writer_handle);
+    DeleteFileW(temp_file.c_str());
+}
+
 }  // namespace

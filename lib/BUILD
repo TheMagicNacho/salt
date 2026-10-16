@@ -18,6 +18,7 @@ cc_library(
         "options-handler.cc",
         "text-utils.cc",
         "menu-bar.cc",
+        "log-tail-handler.cc",
     ],
     hdrs=[
         "errors.h",
@@ -28,6 +29,7 @@ cc_library(
         "text-utils.h",
         "menu-bar.h",
         "context.h",
+        "log-tail-handler.h",
     ],
     visibility=["//visibility:public"],
     linkopts = [

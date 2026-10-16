@@ -39,6 +39,11 @@ std::wstring Utf16BEToWide(const char* raw_buffer, int raw_len);
 /// @return Decoded wide string.
 std::wstring DecodeTextFile(const char* raw_buffer, DWORD buffer_size);
 
+/// @brief Reverses the order of lines in a text block, similar to the Linux 'tac' utility.
+/// @param text The input wide string.
+/// @return Wide string with lines in reversed order, normalized with CRLF.
+std::wstring ReverseLines(const std::wstring& text);
+
 }  // namespace salt
 
 #endif  // SALT_LIB_TEXT_UTILS_H_

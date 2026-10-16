@@ -7,6 +7,7 @@
 #include "lib/context.h"
 #include "lib/errors.h"
 #include "lib/file-handler.h"
+#include "lib/log-tail-handler.h"
 #include "lib/menu-bar.h"
 #include "lib/options-handler.h"
 
@@ -77,6 +78,15 @@ class MainWindow {
     /// @brief Builds and attaches the top-level application menu bar to the window.
     void SetMenuBar();
 
+    /// @brief Toggles Follow Tail mode on the currently opened file.
+    void ToggleFollowTail();
+
+    /// @brief Toggles Reverse Lines (tac) mode.
+    void ToggleReverseLines();
+
+    /// @brief Applies newly arrived log lines from the tail handler to the edit control.
+    void OnLogUpdated();
+
     /// @brief Member window message handler for all Win32 messages dispatched to this window.
     /// @param msg Message identifier.
     /// @param param_w Additional message parameter.
@@ -90,6 +100,9 @@ class MainWindow {
     FileHandler file_handler_;
     OptionsHandler options_handler_;
     MenuBar menu_bar_;
+    salt::LogTailHandler log_tail_handler_;
+    UINT_PTR tail_timer_id_{0};
+    bool is_static_reversed_{false};
 };
 
 #endif  // SALT_LIB_MAIN_WINDOW_H_

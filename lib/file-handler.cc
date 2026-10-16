@@ -14,10 +14,21 @@ std::wstring GetOpenFilePathModern(HWND hwnd) {
                                   reinterpret_cast<void**>(&open_dialog));
     if (SUCCEEDED(hr)) {
         COMDLG_FILTERSPEC filter_specs[] = {
-            {L"All Supported Files (*.txt, *.md, *.json, *.cpp, *.h)",
-             L"*.txt;*.md;*.json;*.cpp;*.h;*.c;*.hpp;*.bzl;*.py;*.js;*.ts;*.html;*.css"},
+            {L"All Supported Developer Files (*.txt, *.md, *.json, *.toml, *.yaml, *.yml, *.rs, "
+             L"...)",
+             L"*.txt;*.md;*.markdown;*.json;*.toml;*.yaml;*.yml;*.rs;*.cpp;*.c;*.h;*.hpp;*.cc;*."
+             L"cxx;"
+             L"*.py;*.js;*.ts;*.jsx;*.tsx;*.html;*.htm;*.css;*.scss;*.less;*.xml;*.svg;*.sh;*.bash;"
+             L"*.bat;*.cmd;*.ps1;*.go;*.java;*.cs;*.rb;*.php;*.lua;*.sql;*.ini;*.cfg;*.conf;*.bzl;"
+             L"*.cmake;CMakeLists.txt;Dockerfile;*.env;*.log"},
             {L"Text Files (*.txt)", L"*.txt"},
-            {L"Markdown Files (*.md)", L"*.md"},
+            {L"Configuration Files (*.json, *.toml, *.yaml, *.yml, *.ini, *.cfg)",
+             L"*.json;*.toml;*.yaml;*.yml;*.ini;*.cfg;*.conf"},
+            {L"Source Code Files (*.rs, *.cpp, *.c, *.h, *.py, *.js, *.ts, *.go, ...)",
+             L"*.rs;*.cpp;*.c;*.h;*.hpp;*.cc;*.cxx;*.py;*.js;*.ts;*.jsx;*.tsx;*.go;*.java;*.cs;*."
+             L"rb;*.php;*.lua"},
+            {L"Markdown & Web Files (*.md, *.html, *.css)",
+             L"*.md;*.markdown;*.html;*.htm;*.css;*.scss;*.less"},
             {L"All Files (*.*)", L"*.*"}};
         open_dialog->SetFileTypes(ARRAYSIZE(filter_specs), filter_specs);
 
@@ -43,7 +54,12 @@ std::wstring GetOpenFilePathModern(HWND hwnd) {
         open_file_name.hwndOwner = hwnd;
         open_file_name.lpstrFile = file_path_buffer;
         open_file_name.nMaxFile = MAX_PATH;
-        open_file_name.lpstrFilter = L"All Files (*.*)\0*.*\0Text Files (*.txt)\0*.txt\0";
+        open_file_name.lpstrFilter =
+            L"All Files (*.*)\0*.*\0"
+            L"Developer Files (*.txt;*.md;*.json;*.toml;*.yaml;*.yml;*.rs;...)\0"
+            L"*.txt;*.md;*.markdown;*.json;*.toml;*.yaml;*.yml;*.rs;*.cpp;*.c;*.h;*.hpp;*.cc;*.py;*"
+            L".js;*.ts;*.html;*.css\0"
+            L"Text Files (*.txt)\0*.txt\0";
         open_file_name.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST;
         if (GetOpenFileNameW(&open_file_name)) {
             result = file_path_buffer;
@@ -61,10 +77,17 @@ std::wstring GetSaveFilePathModern(HWND hwnd) {
     HRESULT hr = CoCreateInstance(CLSID_FileSaveDialog, NULL, CLSCTX_ALL, IID_IFileSaveDialog,
                                   reinterpret_cast<void**>(&save_dialog));
     if (SUCCEEDED(hr)) {
-        COMDLG_FILTERSPEC filter_specs[] = {{L"Text Files (*.txt)", L"*.txt"},
-                                            {L"Markdown Files (*.md)", L"*.md"},
-                                            {L"JSON (*.json)", L"*.json"},
-                                            {L"All Files (*.*)", L"*.*"}};
+        COMDLG_FILTERSPEC filter_specs[] = {
+            {L"Text Files (*.txt)", L"*.txt"},
+            {L"Markdown Files (*.md)", L"*.md"},
+            {L"JSON (*.json)", L"*.json"},
+            {L"TOML (*.toml)", L"*.toml"},
+            {L"YAML (*.yaml, *.yml)", L"*.yaml;*.yml"},
+            {L"Rust (*.rs)", L"*.rs"},
+            {L"C/C++ Files (*.cpp, *.h)", L"*.cpp;*.c;*.h;*.hpp;*.cc"},
+            {L"Python (*.py)", L"*.py"},
+            {L"JavaScript / TypeScript (*.js, *.ts)", L"*.js;*.ts;*.jsx;*.tsx"},
+            {L"All Files (*.*)", L"*.*"}};
         save_dialog->SetFileTypes(ARRAYSIZE(filter_specs), filter_specs);
         save_dialog->SetDefaultExtension(L"txt");
 
@@ -161,8 +184,10 @@ bool FileHandler::OpenFile(HWND hwnd, const std::wstring& path) {
     if (path.empty()) return false;
     if (!PromptSaveIfDirty(hwnd)) return false;
 
-    HANDLE file_handle = CreateFileW(path.c_str(), GENERIC_READ, FILE_SHARE_READ, NULL,
-                                     OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+    HANDLE file_handle =
+        CreateFileW(path.c_str(), GENERIC_READ,
+                    FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, NULL,
+                    OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
     if (file_handle == INVALID_HANDLE_VALUE) {
         if (hwnd) {
             MessageBoxW(hwnd, L"Failed to open file.", L"Error", MB_ICONERROR);

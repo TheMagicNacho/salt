@@ -1,6 +1,7 @@
 #include "main-window.h"
 #include "lib/context.h"
 #include "lib/menu-bar.h"
+#include "lib/text-utils.h"
 #include "resource.h"
 
 #include <dwmapi.h>
@@ -48,6 +49,8 @@ HACCEL MainWindow::CreateAppAccelerators() {
         {FCONTROL | FSHIFT | FVIRTKEY, 'S', Context::Command::FileSaveAs},
         {FCONTROL | FVIRTKEY, 'P', Context::Command::FilePrint},
         {FCONTROL | FVIRTKEY, 'W', Context::Command::ViewWordWrap},
+        {FCONTROL | FVIRTKEY, 'T', Context::Command::ViewFollowTail},
+        {FCONTROL | FVIRTKEY, 'R', Context::Command::ViewReverseLines},
         {FCONTROL | FVIRTKEY, 'Z', Context::Command::EditUndo},
         {FCONTROL | FVIRTKEY, 'A', Context::Command::EditSelectAll},
         {FCONTROL | FVIRTKEY, VK_OEM_PLUS, Context::Command::ViewZoomIn},
@@ -138,7 +141,9 @@ void MainWindow::EnableDarkMode(bool enable) {
 
 void MainWindow::UpdateTitle() {
     std::wstring title = file_handler_.GetFileName();
-    if (file_handler_.IsDirty()) {
+    if (log_tail_handler_.IsTailing()) {
+        title += L" [Following Tail - Read Only]";
+    } else if (file_handler_.IsDirty()) {
         title += L"*";
     }
     title += L" - Salt Text Editor";
@@ -162,24 +167,126 @@ void MainWindow::UpdateStatusBar() {
     SendMessageW(status_hwnd_, SB_SETTEXTW, 0, reinterpret_cast<LPARAM>(pos_text));
 
     wchar_t count_text[64];
-    swprintf_s(count_text, L"  %d characters", total_chars);
+    if (log_tail_handler_.IsTailing()) {
+        swprintf_s(count_text, L"  %zu lines (tail)", log_tail_handler_.GetLineCount());
+    } else {
+        swprintf_s(count_text, L"  %d characters", total_chars);
+    }
     SendMessageW(status_hwnd_, SB_SETTEXTW, 1, reinterpret_cast<LPARAM>(count_text));
 
     SendMessageW(status_hwnd_, SB_SETTEXTW, 2, reinterpret_cast<LPARAM>(L"  Windows (CRLF)"));
     SendMessageW(status_hwnd_, SB_SETTEXTW, 3, reinterpret_cast<LPARAM>(L"  UTF-8"));
 
-    const wchar_t* state_text = file_handler_.IsDirty() ? L"  Modified" : L"  Saved";
-    SendMessageW(status_hwnd_, SB_SETTEXTW, 4, reinterpret_cast<LPARAM>(state_text));
+    std::wstring state_text;
+    if (log_tail_handler_.IsTailing()) {
+        state_text = log_tail_handler_.IsReversed() ? L"  Tail (tac, Read-Only)" : L"  Tail (Read-Only)";
+    } else if (is_static_reversed_) {
+        state_text = file_handler_.IsDirty() ? L"  Modified (tac)" : L"  Saved (tac)";
+    } else {
+        state_text = file_handler_.IsDirty() ? L"  Modified" : L"  Saved";
+    }
+    SendMessageW(status_hwnd_, SB_SETTEXTW, 4, reinterpret_cast<LPARAM>(state_text.c_str()));
 }
 
 void MainWindow::SetMenuBar() {
-    menu_bar_.Create(options_handler_);
+    bool is_tailing = log_tail_handler_.IsTailing();
+    bool is_reversed = is_tailing ? log_tail_handler_.IsReversed() : is_static_reversed_;
+    menu_bar_.Create(options_handler_, is_tailing, is_reversed);
     HMENU menu_handle = menu_bar_.GetMenuHandle();
     bool set_menu_success = SetMenu(hwnd_, menu_handle);
     if (!set_menu_success) {
         SALT_PANIC("Failed to set menu!");
     }
     DrawMenuBar(hwnd_);
+}
+
+void MainWindow::ToggleFollowTail() {
+    if (log_tail_handler_.IsTailing()) {
+        // Stop tailing
+        log_tail_handler_.StopTail();
+        if (tail_timer_id_ != 0) {
+            KillTimer(hwnd_, tail_timer_id_);
+            tail_timer_id_ = 0;
+        }
+        SendMessageW(edit_hwnd_, EM_SETREADONLY, FALSE, 0);
+        SetMenuBar();
+        UpdateTitle();
+        UpdateStatusBar();
+    } else {
+        std::wstring current_file = file_handler_.GetFilePath();
+        if (current_file.empty()) {
+            MessageBoxW(hwnd_, L"Please open or save a file first before following log tail.",
+                        L"Follow Tail", MB_OK | MB_ICONINFORMATION);
+            return;
+        }
+
+        if (file_handler_.IsDirty()) {
+            if (!file_handler_.PromptSaveIfDirty(hwnd_)) {
+                return;
+            }
+        }
+
+        bool reversed = is_static_reversed_;
+        if (!log_tail_handler_.StartTail(hwnd_, current_file, reversed)) {
+            MessageBoxW(hwnd_, L"Failed to start following log tail.", L"Error", MB_OK | MB_ICONERROR);
+            return;
+        }
+
+        // Lock edit control into read-only mode while following tail
+        SendMessageW(edit_hwnd_, EM_SETREADONLY, TRUE, 0);
+
+        // Fallback timer (500ms) to ensure external writes are polled even if directory event lags
+        tail_timer_id_ = SetTimer(hwnd_, 1001, 500, NULL);
+
+        OnLogUpdated();
+        SetMenuBar();
+        UpdateTitle();
+        UpdateStatusBar();
+    }
+}
+
+void MainWindow::ToggleReverseLines() {
+    if (log_tail_handler_.IsTailing()) {
+        // Live reversed mode: toggle reverse flag and reformat buffer
+        bool new_rev = !log_tail_handler_.IsReversed();
+        log_tail_handler_.SetReversed(new_rev);
+        is_static_reversed_ = new_rev;
+        OnLogUpdated();
+        SetMenuBar();
+        UpdateStatusBar();
+    } else {
+        // Static reverse on current edit control content
+        int text_len = GetWindowTextLengthW(edit_hwnd_);
+        if (text_len > 0) {
+            std::wstring buffer(text_len, L'\0');
+            GetWindowTextW(edit_hwnd_, &buffer[0], text_len + 1);
+            std::wstring reversed_text = salt::ReverseLines(buffer);
+            SetWindowTextW(edit_hwnd_, reversed_text.c_str());
+            is_static_reversed_ = !is_static_reversed_;
+            SetMenuBar();
+            UpdateStatusBar();
+        }
+    }
+}
+
+void MainWindow::OnLogUpdated() {
+    if (!edit_hwnd_) return;
+
+    std::wstring text = log_tail_handler_.GetFormattedText();
+    SetWindowTextW(edit_hwnd_, text.c_str());
+
+    if (log_tail_handler_.IsReversed()) {
+        // Reversed: keep cursor / scroll anchored at top
+        SendMessageW(edit_hwnd_, EM_SETSEL, 0, 0);
+        SendMessageW(edit_hwnd_, EM_SCROLLCARET, 0, 0);
+    } else {
+        // Chronological: scroll to bottom
+        int len = GetWindowTextLengthW(edit_hwnd_);
+        SendMessageW(edit_hwnd_, EM_SETSEL, len, len);
+        SendMessageW(edit_hwnd_, EM_SCROLLCARET, 0, 0);
+    }
+
+    UpdateStatusBar();
 }
 
 void MainWindow::RecreateEditControl() {
@@ -296,14 +403,24 @@ LRESULT MainWindow::HandleMessage(UINT msg, WPARAM param_w, LPARAM param_l) {
             Context::Command cmd = static_cast<Context::Command>(LOWORD(param_w));
             switch (cmd) {
                 case Context::Command::FileNew:
+                    if (log_tail_handler_.IsTailing()) {
+                        ToggleFollowTail();
+                    }
+                    is_static_reversed_ = false;
                     if (file_handler_.New(hwnd_)) {
+                        SetMenuBar();
                         UpdateTitle();
                         UpdateStatusBar();
                     }
                     break;
 
                 case Context::Command::FileOpen:
+                    if (log_tail_handler_.IsTailing()) {
+                        ToggleFollowTail();
+                    }
+                    is_static_reversed_ = false;
                     if (file_handler_.Open(hwnd_)) {
+                        SetMenuBar();
                         UpdateTitle();
                         UpdateStatusBar();
                     }
@@ -396,6 +513,14 @@ LRESULT MainWindow::HandleMessage(UINT msg, WPARAM param_w, LPARAM param_l) {
                     break;
                 }
 
+                case Context::Command::ViewFollowTail:
+                    ToggleFollowTail();
+                    break;
+
+                case Context::Command::ViewReverseLines:
+                    ToggleReverseLines();
+                    break;
+
                 case Context::Command::HelpAbout:
                     MessageBoxW(hwnd_,
                                 L"Salt Text Editor v0.1.1\n\n"
@@ -407,10 +532,31 @@ LRESULT MainWindow::HandleMessage(UINT msg, WPARAM param_w, LPARAM param_l) {
             return 0;
         }
 
+        case Context::kMsgLogUpdated: {
+            if (log_tail_handler_.IsTailing()) {
+                if (log_tail_handler_.PollFileChanges()) {
+                    OnLogUpdated();
+                }
+            }
+            return 0;
+        }
+
+        case WM_TIMER: {
+            if (param_w == 1001 && log_tail_handler_.IsTailing()) {
+                if (log_tail_handler_.PollFileChanges()) {
+                    OnLogUpdated();
+                }
+            }
+            return 0;
+        }
+
         case WM_DROPFILES: {
             HDROP drop_handle = reinterpret_cast<HDROP>(param_w);
             wchar_t dropped_file[MAX_PATH] = {0};
             if (DragQueryFileW(drop_handle, 0, dropped_file, MAX_PATH)) {
+                if (log_tail_handler_.IsTailing()) {
+                    ToggleFollowTail();
+                }
                 OpenFile(dropped_file);
             }
             DragFinish(drop_handle);
@@ -425,6 +571,9 @@ LRESULT MainWindow::HandleMessage(UINT msg, WPARAM param_w, LPARAM param_l) {
             break;
 
         case WM_CLOSE:
+            if (log_tail_handler_.IsTailing()) {
+                ToggleFollowTail();
+            }
             if (!file_handler_.PromptSaveIfDirty(hwnd_)) {
                 return 0;  // Cancel close
             }
@@ -432,6 +581,13 @@ LRESULT MainWindow::HandleMessage(UINT msg, WPARAM param_w, LPARAM param_l) {
             return 0;
 
         case WM_DESTROY:
+            if (log_tail_handler_.IsTailing()) {
+                log_tail_handler_.StopTail();
+            }
+            if (tail_timer_id_ != 0) {
+                KillTimer(hwnd_, tail_timer_id_);
+                tail_timer_id_ = 0;
+            }
             PostQuitMessage(0);
             return 0;
     }

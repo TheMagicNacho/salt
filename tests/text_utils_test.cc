@@ -167,4 +167,31 @@ TEST(TextUtilsTest, DecodeTextFileReturnsEmptyStringForEmptyBuffer) {
     EXPECT_EQ(result, L"");
 }
 
+TEST(TextUtilsTest, ReverseLinesReversesSingleAndMultipleLines) {
+    // Arrange: Multiple lines separated by \r\n
+    std::wstring input = L"line 1\r\nline 2\r\nline 3";
+
+    // Act: Reverse lines
+    std::wstring result = salt::ReverseLines(input);
+
+    // Assert: Order is inverted
+    EXPECT_EQ(result, L"line 3\r\nline 2\r\nline 1");
+}
+
+TEST(TextUtilsTest, ReverseLinesHandlesTrailingNewline) {
+    // Arrange: Trailing newline should preserve the trailing empty line in reversed order (at top)
+    std::wstring input = L"line 1\r\nline 2\r\n";
+
+    // Act: Reverse lines
+    std::wstring result = salt::ReverseLines(input);
+
+    // Assert: Reversed output has empty line at top followed by line 2 then line 1
+    EXPECT_EQ(result, L"\r\nline 2\r\nline 1");
+}
+
+TEST(TextUtilsTest, ReverseLinesHandlesEmptyAndSingleLine) {
+    EXPECT_EQ(salt::ReverseLines(L""), L"");
+    EXPECT_EQ(salt::ReverseLines(L"single line"), L"single line");
+}
+
 }  // namespace
