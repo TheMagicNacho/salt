@@ -33,11 +33,33 @@ This is the text editor if your salty that microsoft made notepad so bloated.
 - To auto-format code: `bazelisk run //:format`
 - To run tests (when test targets are present): `bazelisk test //tests:all`
 
-## Release
+## Release Checklist
 
-- To release a new version, tag the commit with 'r*._._' format (e.g. `r1.0.0`)
-- Then push the tag to the remote repository: `git push origin r1.0.0`
-- The pipeline will handle the rest of the release by saving the msi in the release section on github.
+_Replace `r1.0.0` with your target version number (must follow the `r*.*.*` pattern)._
+
+- [ ] **1. Switch to `main` and pull the latest changes**
+
+  ```powershell
+  git checkout main
+  git pull origin main
+  ```
+
+- [ ] **2. Create the release tag**
+
+  ```powershell
+  git tag -a r1.0.0 -m "Release r1.0.0"
+  ```
+
+- [ ] **3. Push the tag to GitHub (triggers the release workflow)**
+
+  ```powershell
+  git push origin r1.0.0
+  ```
+
+- [ ] **4. Verify the automated release**
+  - Open **GitHub Actions** and confirm the `Main CI/CD Pipeline` succeeds.
+  - Check the **Releases** page to verify `r1.0.0` is published as **Latest** with `salt.msi` attached.
+  - The pipeline will handle the rest of the release by saving the msi in the release section on github.
 
 # FAQ
 
