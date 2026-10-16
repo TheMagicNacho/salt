@@ -44,7 +44,8 @@ void MenuBar::Create(OptionsHandler& options_handler, bool is_following_tail, bo
     UINT tail_flags = MF_STRING | (is_following_tail ? MF_CHECKED : MF_UNCHECKED);
     AppendMenuW(view_menu, tail_flags, Context::Command::ViewFollowTail, L"&Follow Tail\tCtrl+T");
     UINT reverse_flags = MF_STRING | (is_reversed ? MF_CHECKED : MF_UNCHECKED);
-    AppendMenuW(view_menu, reverse_flags, Context::Command::ViewReverseLines, L"&Reverse Lines (tac)\tCtrl+R");
+    AppendMenuW(view_menu, reverse_flags, Context::Command::ViewReverseLines,
+                L"&Reverse Lines (tac)\tCtrl+R");
     AppendMenuW(view_menu, MF_SEPARATOR, 0, NULL);
     AppendMenuW(view_menu, MF_STRING, Context::Command::ViewFont, L"Choose &Font...");
     AppendMenuW(view_menu, MF_STRING, Context::Command::ViewZoomIn, L"Zoom &In\tCtrl++");

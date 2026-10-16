@@ -184,10 +184,9 @@ bool FileHandler::OpenFile(HWND hwnd, const std::wstring& path) {
     if (path.empty()) return false;
     if (!PromptSaveIfDirty(hwnd)) return false;
 
-    HANDLE file_handle =
-        CreateFileW(path.c_str(), GENERIC_READ,
-                    FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, NULL,
-                    OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+    HANDLE file_handle = CreateFileW(path.c_str(), GENERIC_READ,
+                                     FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, NULL,
+                                     OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
     if (file_handle == INVALID_HANDLE_VALUE) {
         if (hwnd) {
             MessageBoxW(hwnd, L"Failed to open file.", L"Error", MB_ICONERROR);

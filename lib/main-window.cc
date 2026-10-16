@@ -179,7 +179,8 @@ void MainWindow::UpdateStatusBar() {
 
     std::wstring state_text;
     if (log_tail_handler_.IsTailing()) {
-        state_text = log_tail_handler_.IsReversed() ? L"  Tail (tac, Read-Only)" : L"  Tail (Read-Only)";
+        state_text =
+            log_tail_handler_.IsReversed() ? L"  Tail (tac, Read-Only)" : L"  Tail (Read-Only)";
     } else if (is_static_reversed_) {
         state_text = file_handler_.IsDirty() ? L"  Modified (tac)" : L"  Saved (tac)";
     } else {
@@ -228,7 +229,8 @@ void MainWindow::ToggleFollowTail() {
 
         bool reversed = is_static_reversed_;
         if (!log_tail_handler_.StartTail(hwnd_, current_file, reversed)) {
-            MessageBoxW(hwnd_, L"Failed to start following log tail.", L"Error", MB_OK | MB_ICONERROR);
+            MessageBoxW(hwnd_, L"Failed to start following log tail.", L"Error",
+                        MB_OK | MB_ICONERROR);
             return;
         }
 

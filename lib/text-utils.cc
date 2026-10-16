@@ -179,8 +179,7 @@ std::wstring ReverseLines(const std::wstring& text) {
     }
 
     // If normalized ended with \r\n, there's a trailing empty line represented
-    if (normalized.size() >= 2 &&
-        normalized.substr(normalized.size() - 2) == L"\r\n") {
+    if (normalized.size() >= 2 && normalized.substr(normalized.size() - 2) == L"\r\n") {
         lines.push_back(L"");
     }
 

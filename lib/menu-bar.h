@@ -28,7 +28,8 @@ class MenuBar {
     /// @param options_handler Reference to options handler for querying checkmark states.
     /// @param is_following_tail Whether follow tail is currently active.
     /// @param is_reversed Whether reverse lines is currently active.
-    void Create(OptionsHandler& options_handler, bool is_following_tail = false, bool is_reversed = false);
+    void Create(OptionsHandler& options_handler, bool is_following_tail = false,
+                bool is_reversed = false);
 
     /// @brief Returns the Win32 handle to the built menu bar.
     /// @return HMENU handle, or nullptr if not created.

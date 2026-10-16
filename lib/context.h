@@ -29,15 +29,15 @@ class Context {
         EditSelectAll = 1015,  ///< Select all text.
 
         // View commands
-        ViewWordWrap = 1021,     ///< Toggle word wrapping.
-        ViewFont = 1022,         ///< Open font chooser dialog.
-        ViewZoomIn = 1023,       ///< Increase font size.
-        ViewZoomOut = 1024,      ///< Decrease font size.
-        ViewZoomReset = 1025,    ///< Reset zoom to default.
-        ViewThemeToggle = 1026,  ///< Toggle between dark and light themes.
-        ViewStatusBar = 1027,    ///< Toggle status bar visibility.
-        ViewFollowTail = 1028,   ///< Toggle following log tail in read-only mode.
-        ViewReverseLines = 1029, ///< Toggle reversing lines (tac mode).
+        ViewWordWrap = 1021,      ///< Toggle word wrapping.
+        ViewFont = 1022,          ///< Open font chooser dialog.
+        ViewZoomIn = 1023,        ///< Increase font size.
+        ViewZoomOut = 1024,       ///< Decrease font size.
+        ViewZoomReset = 1025,     ///< Reset zoom to default.
+        ViewThemeToggle = 1026,   ///< Toggle between dark and light themes.
+        ViewStatusBar = 1027,     ///< Toggle status bar visibility.
+        ViewFollowTail = 1028,    ///< Toggle following log tail in read-only mode.
+        ViewReverseLines = 1029,  ///< Toggle reversing lines (tac mode).
 
         // Help commands
         HelpAbout = 1031,  ///< Show About dialog.

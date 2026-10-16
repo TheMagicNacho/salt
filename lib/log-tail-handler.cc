@@ -9,25 +9,15 @@ namespace salt {
 
 LogTailHandler::LogTailHandler() = default;
 
-LogTailHandler::~LogTailHandler() {
-    StopTail();
-}
+LogTailHandler::~LogTailHandler() { StopTail(); }
 
-bool LogTailHandler::IsTailing() const {
-    return is_tailing_.load();
-}
+bool LogTailHandler::IsTailing() const { return is_tailing_.load(); }
 
-bool LogTailHandler::IsReversed() const {
-    return is_reversed_.load();
-}
+bool LogTailHandler::IsReversed() const { return is_reversed_.load(); }
 
-void LogTailHandler::SetReversed(bool reverse) {
-    is_reversed_.store(reverse);
-}
+void LogTailHandler::SetReversed(bool reverse) { is_reversed_.store(reverse); }
 
-std::wstring LogTailHandler::GetFilePath() const {
-    return file_path_;
-}
+std::wstring LogTailHandler::GetFilePath() const { return file_path_; }
 
 size_t LogTailHandler::GetLineCount() const {
     std::lock_guard<std::mutex> lock(buffer_mutex_);
@@ -73,8 +63,8 @@ bool LogTailHandler::StartTail(HWND notify_hwnd, const std::wstring& file_path, 
 
     // Open file with full sharing permissions
     file_handle_ = CreateFileW(file_path_.c_str(), GENERIC_READ,
-                               FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
-                               NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+                               FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, NULL,
+                               OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
     if (file_handle_ == INVALID_HANDLE_VALUE) {
         return false;
     }
@@ -177,11 +167,13 @@ bool LogTailHandler::PollFileChanges() {
         return false;
     }
 
-    DWORD bytes_to_read = static_cast<DWORD>((std::min)(current_size - file_offset_, static_cast<uint64_t>(1024 * 1024)));
+    DWORD bytes_to_read = static_cast<DWORD>(
+        (std::min)(current_size - file_offset_, static_cast<uint64_t>(1024 * 1024)));
     std::vector<char> buffer(bytes_to_read);
     DWORD bytes_read = 0;
 
-    if (!ReadFile(file_handle_, buffer.data(), bytes_to_read, &bytes_read, NULL) || bytes_read == 0) {
+    if (!ReadFile(file_handle_, buffer.data(), bytes_to_read, &bytes_read, NULL) ||
+        bytes_read == 0) {
         return false;
     }
 
@@ -238,10 +230,10 @@ std::wstring LogTailHandler::GetFormattedText() const {
 }
 
 void LogTailHandler::WatcherThreadProc() {
-    HANDLE dir_handle = CreateFileW(
-        dir_path_.c_str(), FILE_LIST_DIRECTORY,
-        FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
-        NULL, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OVERLAPPED, NULL);
+    HANDLE dir_handle =
+        CreateFileW(dir_path_.c_str(), FILE_LIST_DIRECTORY,
+                    FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, NULL, OPEN_EXISTING,
+                    FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OVERLAPPED, NULL);
 
     if (dir_handle == INVALID_HANDLE_VALUE) {
         return;
@@ -254,10 +246,10 @@ void LogTailHandler::WatcherThreadProc() {
     while (!stop_requested_.load()) {
         ResetEvent(overlapped.hEvent);
         DWORD bytes_returned = 0;
-        BOOL read_ok = ReadDirectoryChangesW(
-            dir_handle, change_buf, sizeof(change_buf), FALSE,
-            FILE_NOTIFY_CHANGE_SIZE | FILE_NOTIFY_CHANGE_LAST_WRITE,
-            &bytes_returned, &overlapped, NULL);
+        BOOL read_ok =
+            ReadDirectoryChangesW(dir_handle, change_buf, sizeof(change_buf), FALSE,
+                                  FILE_NOTIFY_CHANGE_SIZE | FILE_NOTIFY_CHANGE_LAST_WRITE,
+                                  &bytes_returned, &overlapped, NULL);
 
         if (!read_ok && GetLastError() != ERROR_IO_PENDING) {
             break;
